@@ -74,12 +74,12 @@ PLAYER player;
 */
 const char *PEIXE_DIREITA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     {
-        "\\____)\\____",
+        "\\____)\\____ ",
         "/-v___ __`<  ",
         "     )/      "
     },
     {
-        "\\____)\\____",
+        "\\____)\\____ ",
         "/-v___ __`=  ",
         "     )/      "
     }
@@ -98,7 +98,7 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     }
 };
 
-const char *(*TUBARAO_SPRITE)[ALTURA_PEIXE] = PEIXE_DIREITA;
+const char *(*PEIXE_SPRITE)[ALTURA_PEIXE] = PEIXE_DIREITA;
 
 // Struct do peixe
 typedef struct {
@@ -175,29 +175,42 @@ void desenhaPlayer()
 {
     int frameAtualPlayer = (relogioGlobal / VELOCIDADE_ANIMACAO_PLAYER) % TOTAL_FRAMES_JOGADOR;
 
-    for(int i = 0; i < ALTURA_PLAYER; i++){
-        for(int j = 0; j < LARGURA_PLAYER; j++){
-            int indice = (player.y + i) * TELA_LARGURA + (player.x + j);
+    for (int i = 0; i < ALTURA_PLAYER; i++)
+    {
+        for (int j = 0; j < LARGURA_PLAYER; j++)
+        {
 
-            char caractere = PLAYER_SPRITE[frameAtualPlayer][i][j];
+            int posX = player.x + j;
+            int posY = player.y + i;
+            if (posX >= 0 && posX < TELA_LARGURA && posY >= 0 && posY < TELA_ALTURA)
+            {
 
-            consoleBuffer[indice].Char.AsciiChar = caractere;
-            consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE;
+                int indice = posY * TELA_LARGURA + posX;
+
+                char caractere = PLAYER_SPRITE[frameAtualPlayer][i][j];
+
+                if (caractere != ' ')
+                {
+                    consoleBuffer[indice].Char.AsciiChar = caractere;
+                    consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE;
+                }
+            }
         }
     }
 }
 
 void desenhaMapa()
 {
-    for(int i = 0; i < TELA_LARGURA*TELA_ALTURA; i++){
+    for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; i++)
+    {
         consoleBuffer[i].Char.AsciiChar = ' ';
         consoleBuffer[i].Attributes = BACKGROUND_BLUE;
     }
 }
 
-//Enzo Capitani: Criação do desenhaTela();
+// Enzo Capitani: Criação do desenhaTela();
 void desenhaTela()
-{   
+{
     desenhaMapa();
     desenhaPlayer();
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
@@ -206,13 +219,22 @@ void desenhaTela()
 // ---------------------------------- Métodos de ações ----------------------------------
 
 void acoesPlayer()
-{   
+{
 
-    if(GetAsyncKeyState(VK_RIGHT)) player.x += VELOCIDADE_X_PLAYER;
-    if(GetAsyncKeyState(VK_LEFT)) player.x -= VELOCIDADE_X_PLAYER;
-    if(GetAsyncKeyState(VK_DOWN)) player.y += VELOCIDADE_X_PLAYER;
-    if(GetAsyncKeyState(VK_UP)) player.y -= VELOCIDADE_X_PLAYER;
-    
+    if (GetAsyncKeyState(VK_RIGHT))
+    {
+        player.x += VELOCIDADE_X_PLAYER;
+        PLAYER_SPRITE = PLAYER_DIREITA;
+    }
+    if (GetAsyncKeyState(VK_LEFT))
+    {
+        player.x -= VELOCIDADE_X_PLAYER;
+        PLAYER_SPRITE = PLAYER_ESQUERDA;
+    }
+    if (GetAsyncKeyState(VK_DOWN))
+        player.y += VELOCIDADE_Y_PLAYER;
+    if (GetAsyncKeyState(VK_UP))
+        player.y -= VELOCIDADE_Y_PLAYER;
 }
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
@@ -220,20 +242,38 @@ void acoesPlayer()
 void updatePlayer()
 {
     acoesPlayer();
+
+    if (player.x < 0)
+    {
+        player.x = 0;
+    }
+    if (player.y < 2)
+    {
+        player.y = 2;
+    }
+    if (player.x + LARGURA_PLAYER > TELA_LARGURA)
+    {
+        player.x = TELA_LARGURA - LARGURA_PLAYER;
+    }
+    if (player.y + ALTURA_PLAYER > TELA_ALTURA - 2)
+    {
+        player.y = TELA_ALTURA - ALTURA_PLAYER - 2;
+    }
 }
 
 void update()
-{   
+{
     updatePlayer();
-    relogioGlobal++;
     desenhaTela();
+
+    relogioGlobal++;
 }
 
 // ---------------------------------- Métodos de inicializações ----------------------------------
 void iniciarPlayer()
 {
-    player.x = TELA_LARGURA / 2;
-    player.y = TELA_ALTURA / 2;
+    player.x = 30;
+    player.y = 15;
 }
 
 void iniciar()
