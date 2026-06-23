@@ -1,2 +1,5 @@
 # Remove a pasta do VS Code
-vscode/
+.vscode/
+
+# Remove os arquivos executáveis
+*.exe
