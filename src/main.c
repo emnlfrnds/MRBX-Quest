@@ -419,7 +419,7 @@ void alterarCorPeixe() {
     }
 }
 
-void spawnarpeixe() {
+void spawnarPeixes() {
     
     // Chance
 
@@ -427,12 +427,12 @@ void spawnarpeixe() {
 
     // Cardume
 
-    int peixeLivres = 0;
+    int peixesLivres = 0;
 
-    for (int p = 0; p < PEIXE_MAX; p++) { if (!peixe[p].vivo) { peixeLivres++; } }
-    if (!peixeLivres) { return; }
+    for (int p = 0; p < PEIXE_MAX; p++) { if (!peixe[p].vivo) { peixesLivres++; } }
+    if (!peixesLivres) { return; }
     
-    int cardume = peixeLivres;
+    int cardume = peixesLivres;
     if (cardume >= 3) { cardume = 3; };
 
     // Constantes
@@ -448,8 +448,8 @@ void spawnarpeixe() {
 
         int tamanhoCardume = rand() % cardume + 1;
 
-        int alturaMin = 3;
-        int alturaMax = TELA_ALTURA - 3 - (tamanhoCardume * ALTURA_PEIXE);
+        int alturaMin = 4;
+        int alturaMax = TELA_ALTURA - 2 - (tamanhoCardume * ALTURA_PEIXE);
         if (alturaMax < alturaMin) { alturaMax = alturaMin; }
 
         int alturaBase = alturaMin + (rand() % (alturaMax - alturaMin + 1));
@@ -483,7 +483,7 @@ void spawnarpeixe() {
 
     // Nascimento
 
-    int peixeNascidos = 0;
+    int peixesNascidos = 0;
 
     for (int p = 0; p < PEIXE_MAX; p++)
     {
@@ -491,7 +491,7 @@ void spawnarpeixe() {
         {
             peixe[p].vivo = 1;
             peixe[p].vida = 1;
-            peixe[p].y = alturaBaseFinal + (peixeNascidos * ALTURA_PEIXE);
+            peixe[p].y = alturaBaseFinal + (peixesNascidos * ALTURA_PEIXE);
 
             WORD corPeixe;
 
@@ -513,9 +513,9 @@ void spawnarpeixe() {
                 peixe[p].dx = -1;
             }
             
-            peixeNascidos++;
+            peixesNascidos++;
 
-            if (peixeNascidos >= tamanhoCardumeFinal) { break; }
+            if (peixesNascidos >= tamanhoCardumeFinal) { break; }
         }
     }
 }
@@ -566,15 +566,15 @@ void acaoTiro()
 
 void colisaoPlayerPeixe()
 {
-    for (int i = 0; i < PEIXE_MAX; i++)
+    for (int p = 0; p < PEIXE_MAX; p++)
     {
-        if (player.x + LARGURA_PLAYER > peixe[i].x &&
-             player.x < peixe[i].x + LARGURA_PEIXE &&
-              player.y + ALTURA_PLAYER > peixe[i].y &&
-               player.y < peixe[i].y + ALTURA_PEIXE && peixe[i].vivo == 1)
+        if (player.x + LARGURA_PLAYER > peixe[p].x &&
+             player.x < peixe[p].x + LARGURA_PEIXE &&
+              player.y + ALTURA_PLAYER > peixe[p].y &&
+               player.y < peixe[p].y + ALTURA_PEIXE && peixe[p].vivo == 1)
         {
-            peixe[i].vivo = 0;
-            peixe[i].x = 0;
+            peixe[p].vivo = 0;
+            peixe[p].x = 0;
             player.vida--;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -678,7 +678,7 @@ void updatePeixe() {
 
 void update()
 {   
-    spawnarpeixe();
+    spawnarPeixes();
     updatePlayer();
     updatePeixe();
     updateTiro();

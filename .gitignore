@@ -3,3 +3,8 @@
 
 # Remove os arquivos executáveis
 *.exe
+
+# Remove os compiladores locais
+jogar1.bat
+jogar2.bat
+jogar3.bat
