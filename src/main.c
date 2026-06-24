@@ -62,6 +62,7 @@ typedef struct
 {
     int x, y, score, nivelOxigenio, frameAtual;
     int vida, respirando;
+    WORD cor;
 } PLAYER;
 
 PLAYER player;
@@ -199,6 +200,7 @@ SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 Mix_Chunk* somTiro = NULL;
 Mix_Chunk* somAlerta = NULL;
 Mix_Chunk* somRespirando = NULL;
+Mix_Chunk* somDano = NULL;
 
 int relogioGlobal = 0;
 
@@ -323,7 +325,7 @@ void desenhaPlayer()
                         consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_INTENSITY;
                         continue;    
                     }
-                    consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
+                    consoleBuffer[indice].Attributes = player.cor;
                 }
             }
         }
@@ -417,7 +419,7 @@ void alterarCorPeixe() {
     }
 }
 
-void spawnarPeixes() {
+void spawnarpeixe() {
     
     // Chance
 
@@ -425,12 +427,12 @@ void spawnarPeixes() {
 
     // Cardume
 
-    int peixesLivres = 0;
+    int peixeLivres = 0;
 
-    for (int p = 0; p < PEIXE_MAX; p++) { if (!peixe[p].vivo) { peixesLivres++; } }
-    if (!peixesLivres) { return; }
+    for (int p = 0; p < PEIXE_MAX; p++) { if (!peixe[p].vivo) { peixeLivres++; } }
+    if (!peixeLivres) { return; }
     
-    int cardume = peixesLivres;
+    int cardume = peixeLivres;
     if (cardume >= 3) { cardume = 3; };
 
     // Constantes
@@ -481,7 +483,7 @@ void spawnarPeixes() {
 
     // Nascimento
 
-    int peixesNascidos = 0;
+    int peixeNascidos = 0;
 
     for (int p = 0; p < PEIXE_MAX; p++)
     {
@@ -489,7 +491,7 @@ void spawnarPeixes() {
         {
             peixe[p].vivo = 1;
             peixe[p].vida = 1;
-            peixe[p].y = alturaBaseFinal + (peixesNascidos * ALTURA_PEIXE);
+            peixe[p].y = alturaBaseFinal + (peixeNascidos * ALTURA_PEIXE);
 
             WORD corPeixe;
 
@@ -511,9 +513,9 @@ void spawnarPeixes() {
                 peixe[p].dx = -1;
             }
             
-            peixesNascidos++;
+            peixeNascidos++;
 
-            if (peixesNascidos >= tamanhoCardumeFinal) { break; }
+            if (peixeNascidos >= tamanhoCardumeFinal) { break; }
         }
     }
 }
@@ -560,6 +562,33 @@ void acaoTiro()
     }
 }
 
+// ---------------------------------- Métodos de colisões ----------------------------------
+
+void colisaoPlayerPeixe()
+{
+    for (int i = 0; i < PEIXE_MAX; i++)
+    {
+        if (player.x + LARGURA_PLAYER > peixe[i].x &&
+             player.x < peixe[i].x + LARGURA_PEIXE &&
+              player.y + ALTURA_PLAYER > peixe[i].y &&
+               player.y < peixe[i].y + ALTURA_PEIXE && peixe[i].vivo == 1)
+        {
+            peixe[i].vivo = 0;
+            peixe[i].x = 0;
+            player.vida--;
+
+            player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
+
+            tocarSom(somDano);
+        }
+    }
+}
+
+void colisoes()
+{
+    colisaoPlayerPeixe();
+}
+
 // ---------------------------------- Métodos de atualizações ----------------------------------
 
 void updatePlayer()
@@ -592,7 +621,7 @@ void updatePlayer()
     if(player.y <= ALTURA_CEU - 1){
         player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
-        if(player.nivelOxigenio < 1000){
+        if(player.nivelOxigenio < 1000 && player.respirando){
             tocarSomCanalEspecifico(somRespirando, 6);
         }else{
             pararSom(6);
@@ -610,6 +639,10 @@ void updatePlayer()
 
     if(player.respirando){
         pararSom(7);
+    }
+
+    if(relogioGlobal % 5 == 0){
+        player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
     }
 
 }
@@ -644,11 +677,12 @@ void updatePeixe() {
 }
 
 void update()
-{
-    spawnarPeixes();
+{   
+    spawnarpeixe();
     updatePlayer();
     updatePeixe();
     updateTiro();
+    colisoes();
     desenhaTela();
 
     relogioGlobal++;
@@ -663,6 +697,7 @@ void iniciarPlayer()
     player.vida = 5;
     player.score = 0;
     player.respirando = 0;
+    player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 }
 
 void iniciarPeixe()
@@ -702,6 +737,7 @@ void iniciarSons()
     carregarSom(&somTiro, "src/sons/tiro.wav");
     carregarSom(&somAlerta, "src/sons/Alerta1.wav");
     carregarSom(&somRespirando, "src/sons/respirando1.wav");
+    carregarSom(&somDano, "src/sons/dano2.wav");
 }
 
 void iniciar()
@@ -726,7 +762,6 @@ int main(int argc, char* argv[]){
 
     while(1)
     {   
-        acoesPlayer();
         update();
         Sleep(DELAY);
     }
