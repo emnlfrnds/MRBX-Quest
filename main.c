@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <conio.h>
 #include <stdlib.h>
+#include <time.h>
 
 //Constantes da tela
 #define TELA_LARGURA 125
@@ -65,38 +66,40 @@ PLAYER player;
 //Enzo Emanoel: Criação do peixe
 
 #define ALTURA_PEIXE               3
-#define LARGURA_PEIXE              13
+#define LARGURA_PEIXE              6
 #define VEL_X_PEIXE                2
 #define VEL_Y_PEIXE                1
 #define TOTAL_FRAMES_PEIXE         2
-#define VEL_ANIMACAO_PEIXE         1
+#define VEL_ANIMACAO_PEIXE         8
+#define PEIXE_MAX                  10
+#define PEIXE_ACERELADO            1
 
 /*
     Enzo Emanoel: Sprites iniciais do peixe
 */
 const char *PEIXE_DIREITA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     {
-        "\\____)\\____",
-        "/-v___ __`<  ",
-        "     )/      "
+        "  _-_ ",
+        ">(_<')",
+        "  '-' "
     },
     {
-        "\\____)\\____",
-        "/-v___ __`=  ",
-        "     )/      "
+        "  _-_ ",
+        ">(_>')",
+        "  '-' "
     }
 };
 
 const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     {
-        "____/(____/  ",
-        " >`__ ___v-\\",
-        "    )/       ",
+        " _-_  ",
+        "('>_)<",
+        " '-'  "
     },
     {
-        "____/(____/  ",
-        " >`__ ___v-\\",
-        "    )/       ",
+        " _-_  ",
+        "('<_)<",
+        " '-'  "
     }
 };
 
@@ -108,45 +111,49 @@ typedef struct {
     int dx, dy;
     int vivo;
     int vida;
+    WORD cor;
 } PEIXE;
 
-PEIXE peixe;
+PEIXE peixe[PEIXE_MAX];
 
+/*
 //Enzo Emanoel: Criação do tubarão
 
 #define ALTURA_TUBARAO             3
-#define LARGURA_TUBARAO            13
+#define LARGURA_TUBARAO            11
 #define VEL_X_TUBARAO              2
 #define VEL_Y_TUBARAO              1
 #define TOTAL_FRAMES_TUBARAO       2
 #define VEL_ANIMACAO_TUBARAO       1
+#define TUBARAO_MAX                5
+#define TUBARAO_ACELERADO          1.0
 
-/*
+
     Enzo Emanoel: Sprites iniciais do tubarão
-*/
+
 const char *TUBARAO_DIREITA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {
         "\\____)\\____",
-        "/-v___ __`<  ",
-        "     )/      "
+        "/-v___ __`< ",
+        "     )/     "
     },
     {
-        "\\____)\\____ ",
-        "/-v___ __`=  ",
-        "     )/      "
+        "\\____)\\____",
+        "/-v___ __`= ",
+        "     )/     "
     }
 };
 
 const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {
-        "____/(____/  ",
-        " >`__ ___v-\\ ",
-        "    )/       ",
+        "____/(____/ ",
+        " >`__ ___v-\\",
+        "    )/      ",
     },
     {
-        "____/(____/  ",
-        " >`__ ___v-\\ ",
-        "    )/       ",
+        "____/(____/ ",
+        " =`__ ___v-\\",
+        "    )/      ",
     }
 };
 
@@ -158,9 +165,11 @@ typedef struct {
     int dx, dy;
     int vivo, ativo;
     int vida;
+    WORD cor;
 } TUBARAO;
 
 TUBARAO tubarao;
+*/
 
 #define VEL_TIRO 5
 #define ICON_TIRO '='
@@ -282,6 +291,34 @@ void desenhaPlayer()
     }
 }
 
+void desenharPeixe() {
+    
+    for (int p = 0; p < PEIXE_MAX; p++) {
+
+        if (peixe[p].vivo) {
+
+            for (int i = 0; i < ALTURA_PEIXE; i++) {
+                for (int j = 0; j < LARGURA_PEIXE; j++) {
+
+                    int frameAtualPeixe = (relogioGlobal / VEL_ANIMACAO_PEIXE) % TOTAL_FRAMES_PEIXE;
+
+                    int px = peixe[p].x + j;
+                    int py = peixe[p].y + i;
+
+                    if (px >= 0 && px < TELA_LARGURA && py >= 0 && py < TELA_ALTURA) {
+
+                        int desenhoPeixe = (peixe[p].dx == 1) ? PEIXE_DIREITA[frameAtualPeixe][i][j] : PEIXE_ESQUERDA[frameAtualPeixe][i][j];
+                        int indicePeixe = py * TELA_LARGURA + px;
+                        consoleBuffer[indicePeixe].Char.AsciiChar = desenhoPeixe;
+                        consoleBuffer[indicePeixe].Attributes = peixe[p].cor | BACKGROUND_BLUE;
+
+                    }
+                }
+            }
+        }
+    }
+}
+
 void desenhaTiro()
 {
     for(int i = 0; i < MAX_TIRO; i++)
@@ -322,8 +359,124 @@ void desenhaTela()
     desenhaScore();
     desenhaBarraOxigenio();
     desenhaPlayer();
+    desenharPeixe();
     desenhaTiro();
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+}
+
+// ---------------------------------- Sistemas Autônomos --------------------------------
+
+void alterarCorPeixe() {
+    WORD corPeixe;
+
+    for (int p = 0; p < PEIXE_MAX; p++) {
+        do
+        {
+            corPeixe = FOREGROUND_RED | (rand() % 2 ? FOREGROUND_GREEN : 0) | (rand() % 2 ? FOREGROUND_BLUE : 0);
+        } while (corPeixe == peixe[p].cor);
+        peixe[p].cor = corPeixe;
+    }
+}
+
+void spawnarPeixes() {
+    
+    // Chance
+
+    if (rand() % 4 != 0) { return; }
+
+    // Cardume
+
+    int peixesLivres = 0;
+
+    for (int p = 0; p < PEIXE_MAX; p++) { if (!peixe[p].vivo) { peixesLivres++; } }
+    if (!peixesLivres) { return; }
+    
+    int cardume = peixesLivres;
+    if (cardume >= 3) { cardume = 3; };
+
+    // Constantes
+    
+    int tamanhoCardumeFinal, alturaBaseFinal, ladoNascerFinal;
+
+    int posicaoLivre = 0;
+    int tentativas = 0;
+
+    // Verificação de linhas livres
+
+    while (tentativas < 5) {
+
+        int tamanhoCardume = rand() % cardume + 1;
+
+        int alturaMin = 3;
+        int alturaMax = TELA_ALTURA - 3 - (tamanhoCardume * ALTURA_PEIXE);
+        if (alturaMax < alturaMin) { alturaMax = alturaMin; }
+
+        int alturaBase = alturaMin + (rand() % (alturaMax - alturaMin + 1));
+
+        int ladoNascer = (rand() % 2 == 0);
+
+        posicaoLivre = 1;
+        
+        for (int p = 0; p < PEIXE_MAX; p++) {
+            if (peixe[p].vivo) {
+                if (abs(alturaBase - peixe[p].y) < (tamanhoCardume * ALTURA_PEIXE + 1)) {
+                    posicaoLivre = 0;
+                    break;
+                }
+            }
+        }
+
+        if (posicaoLivre == 1) {
+            tamanhoCardumeFinal = tamanhoCardume;
+            alturaBaseFinal = alturaBase;
+            ladoNascerFinal = ladoNascer;
+            break;
+        }
+
+        tentativas++;
+    }
+
+    if (posicaoLivre == 0) {
+        return;
+    }
+
+    // Nascimento
+
+    int peixesNascidos = 0;
+
+    for (int p = 0; p < PEIXE_MAX; p++)
+    {
+        if (!peixe[p].vivo)
+        {
+            peixe[p].vivo = 1;
+            peixe[p].vida = 1;
+            peixe[p].y = alturaBaseFinal + (peixesNascidos * ALTURA_PEIXE);
+
+            WORD corPeixe;
+
+            do
+            {
+                corPeixe = FOREGROUND_RED | (rand() % 2 ? FOREGROUND_GREEN | FOREGROUND_INTENSITY : 0) | FOREGROUND_INTENSITY;
+            } while (corPeixe == peixe[p].cor);
+            
+            peixe[p].cor = corPeixe;
+
+            if (ladoNascerFinal)
+            {
+                peixe[p].x = 0 - LARGURA_PEIXE;
+                peixe[p].dx = 1;
+            }
+            else
+            {
+                peixe[p].x = TELA_LARGURA + LARGURA_PEIXE;
+                peixe[p].dx = -1;
+            }
+            
+            peixesNascidos++;
+
+            if (peixesNascidos >= tamanhoCardumeFinal) { break; }
+        }
+    }
 }
 
 // ---------------------------------- Métodos de ações ----------------------------------
@@ -418,9 +571,24 @@ void updateTiro()
     }
 }
 
+void updatePeixe() {
+    for (int p = 0; p < PEIXE_MAX; p++) {
+        if (peixe[p].vivo) {
+
+            peixe[p].x += peixe[p].dx * PEIXE_ACERELADO;
+
+            if (peixe[p].x <= 0 - LARGURA_PEIXE || peixe[p].x > TELA_LARGURA + LARGURA_PEIXE) {
+                peixe[p].vivo = 0;
+            }
+        }
+    }
+}
+
 void update()
 {
+    spawnarPeixes();
     updatePlayer();
+    updatePeixe();
     updateTiro();
     desenhaTela();
 
@@ -437,6 +605,13 @@ void iniciarPlayer()
     player.score = 0;
 }
 
+void iniciarPeixe()
+{
+    for (int p = 0; p < PEIXE_MAX; p++) {
+        peixe[p].vivo = 0;
+    }
+}
+
 void iniciarTiros()
 {
     for(int i = 0; i < MAX_TIRO; i++)
@@ -448,6 +623,7 @@ void iniciarTiros()
 void iniciar()
 {
     iniciarPlayer();
+    iniciarPeixe();
     iniciarTiros();
 }
 
@@ -456,7 +632,9 @@ void iniciar()
 //acho que é o main
 int main(){
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    
+
+    srand((unsigned)time(NULL));
+
     iniciar();
 
     while(1)
