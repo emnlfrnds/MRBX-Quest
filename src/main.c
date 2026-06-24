@@ -3,6 +3,9 @@
 #include <conio.h>
 #include <stdlib.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
+
 //Constantes da tela
 #define TELA_LARGURA 125
 #define TELA_ALTURA  25
@@ -183,7 +186,38 @@ COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
 COORD bufferCoord = {0, 0};
 SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 
+//Inicialização dos sons
+Mix_Chunk* somTiro = NULL;
+Mix_Chunk* somAlerta = NULL;
+Mix_Chunk* somRespirando = NULL;
+
 int relogioGlobal = 0;
+
+//------------------------------- Métodos de sons -----------------------------------------------
+
+void carregarSom(Mix_Chunk** som, char caminho[]){
+    *som = Mix_LoadWAV(caminho);
+    
+    if(*som == NULL){
+        printf("ERRO AO CARREGAR SOM: %s\n", Mix_GetError());
+    }
+}
+
+void tocarSomCanalEspecifico(Mix_Chunk* som, int canal){
+    if(som != NULL){
+
+        if(canal >= 0 && Mix_Playing(canal)) return;
+
+        Mix_PlayChannel(canal, som, 0);
+    }
+}
+
+void tocarSom(Mix_Chunk* som)
+{
+    if(som != NULL){
+        Mix_PlayChannel(-1, som, 0);
+    }
+}
 
 // ---------------------------------- Métodos de desenhos ----------------------------------
 
@@ -359,6 +393,9 @@ void acaoTiro()
                     tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
                     tiros[i].y = player.y + 1;
                     tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
+
+                    tocarSom(somTiro);
+
                     break;
                 }
             }
@@ -396,8 +433,15 @@ void updatePlayer()
 
     if(player.y <= ALTURA_CEU - 1){
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
+        if(player.nivelOxigenio < 1000)
+            tocarSomCanalEspecifico(somRespirando, 6);
     }else{
         player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
+    }
+
+    if(player.nivelOxigenio < 250)
+    {
+        tocarSomCanalEspecifico(somAlerta, 7);
     }
 
 }
@@ -445,8 +489,35 @@ void iniciarTiros()
     }
 }
 
-void iniciar()
+//---------------- Inicia os sons ----------------------
+
+int iniciarSDL(){
+    if(SDL_Init(SDL_INIT_AUDIO) < 0)
+    {
+        printf("Erro ao inicializar áudio do SDL: %s\n", SDL_GetError());
+        return 1;
+    }
+    if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        printf("Erro ao inicializar SDL_mixer: %s\n", Mix_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    return 0;
+}
+
+void iniciarSons()
 {
+    carregarSom(&somTiro, "src/sons/tiro.wav");
+    carregarSom(&somAlerta, "src/sons/Alerta1.wav");
+    carregarSom(&somRespirando, "src/sons/respirando1.wav");
+}
+
+void iniciar()
+{   
+    iniciarSDL();
+    iniciarSons();
+
     iniciarPlayer();
     iniciarTiros();
 }
@@ -454,7 +525,7 @@ void iniciar()
 // ---------------------------------- Main ----------------------------------
 
 //acho que é o main
-int main(){
+int main(int argc, char* argv[]){
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     
     iniciar();
@@ -465,6 +536,9 @@ int main(){
         update();
         Sleep(DELAY);
     }
+
+    Mix_CloseAudio();
+    SDL_Quit();
 
     return 0;
 }
