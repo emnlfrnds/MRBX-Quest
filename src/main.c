@@ -189,6 +189,24 @@ typedef struct {
 
 TIRO tiros[MAX_TIRO];
 
+#define MORTO_MAX (PEIXE_MAX) //TODO Deve adicionar o MAX de inimigos no MORTO_MAX sempre que adicionar uma entidade nova
+#define ALTURA_MORTO 3
+#define LARGURA_MORTO 3
+
+const char *ICON_MORTO[ALTURA_MORTO] = {
+    "\\ /",
+    " x ",
+    "/ \\"
+};
+
+typedef struct {
+    int x, y,
+        timer,
+        ativo;
+} MORTO;
+
+MORTO morto[MORTO_MAX];
+
 //Coisas do buffer
 HANDLE hConsole;
 CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
@@ -380,6 +398,32 @@ void desenhaTiro()
     }
 }
 
+void desenhaMorto()
+{
+    for(int m = 0; m < MORTO_MAX; m++){
+        if(morto[m].ativo){
+            for(int i = 0; i < ALTURA_MORTO; i++)
+            {
+                for(int j = 0; j < LARGURA_MORTO; j++)
+                {                    
+                    int posX = morto[m].x + i;
+                    int posY = morto[m].y + j;
+                    
+                    if(!(posX < 0 || posX > TELA_LARGURA || posY < 0 || posY > TELA_ALTURA)){
+                        char caractere = ICON_MORTO[i][j];
+
+                        if(!caractere != ' ')
+                        {
+                            consoleBuffer[posY * TELA_LARGURA + posX].Char.AsciiChar = caractere;
+                            consoleBuffer[posY * TELA_LARGURA + posX].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void desenhaMapa()
 {
     for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; i++)
@@ -402,6 +446,7 @@ void desenhaTela()
     desenhaPlayer();
     desenharPeixe();
     desenhaTiro();
+    desenhaMorto();
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
 }
 
@@ -516,6 +561,21 @@ void spawnarPeixes() {
             peixesNascidos++;
 
             if (peixesNascidos >= tamanhoCardumeFinal) { break; }
+        }
+    }
+}
+
+void matarEntidade(int posX, int posY)
+{
+    for(int i = 0; i < MORTO_MAX; i++)
+    {
+        if(!morto[i].ativo)
+        {
+            morto[i].ativo = 1;
+            morto[i].timer = 3;
+            morto[i].x = posX;
+            morto[i].y = posY;
+            break;
         }
     }
 }
@@ -694,6 +754,11 @@ void updateTiro()
 
 void updatePeixe() {
     for (int p = 0; p < PEIXE_MAX; p++) {
+        if (peixe[p].vivo && peixe[p].vida <= 0)
+        {
+            peixe[p].vivo = 0;
+            matarEntidade(peixe[p].x, peixe[p].y);
+        }
         if (peixe[p].vivo) {
 
             peixe[p].x += peixe[p].dx * PEIXE_ACERELADO;
@@ -705,12 +770,29 @@ void updatePeixe() {
     }
 }
 
+void updateMorto()
+{
+    for(int m = 0; m < MORTO_MAX; m++)
+    {
+        if(morto[m].timer <= 0)
+        {
+            morto[m].ativo = 0;
+        }
+        else
+        {
+            morto[m].timer--;
+        }
+    }
+}
+
+
 void update()
 {   
     spawnarPeixes();
     updatePlayer();
     updatePeixe();
     updateTiro();
+    updateMorto();
     colisoes();
     desenhaTela();
 
@@ -741,6 +823,14 @@ void iniciarTiros()
     for(int i = 0; i < MAX_TIRO; i++)
     {   
         tiros[i].ativo = 0;
+    }
+}
+
+void iniciarMorto()
+{
+    for(int i = 0; i < MORTO_MAX; i++)
+    {
+        morto[i].ativo = 0;
     }
 }
 
@@ -777,6 +867,7 @@ void iniciar()
     iniciarPlayer();
     iniciarPeixe();
     iniciarTiros();
+    iniciarMorto();
 }
 
 // ---------------------------------- Main ----------------------------------
