@@ -584,9 +584,38 @@ void colisaoPlayerPeixe()
     }
 }
 
+void colisaoPeixeTiro()
+{
+    for (int t = 0; t < MAX_TIRO; t++)
+    {
+        if (tiros[t].ativo)
+        {
+            for (int p = 0; p < PEIXE_MAX; p++)
+            {
+                if (peixe[p].vivo)
+                {
+                    if (peixe[p].y < tiros[t].y + 1 && peixe[p].y + ALTURA_PEIXE > tiros[t].y &&
+                        peixe[p].x < tiros[t].x + 1 && peixe[p].x + LARGURA_PEIXE > tiros[t].x)
+                    {
+                        peixe[p].vida--;
+                        tiros[t].ativo = 0;
+                        player.score += 100;
+                        break;
+                    }
+                }
+            }
+            if (!tiros[t].ativo)
+            {
+                break;
+            }
+        }
+    }
+}
+
 void colisoes()
 {
     colisaoPlayerPeixe();
+    colisaoPeixeTiro();
 }
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
