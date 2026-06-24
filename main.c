@@ -68,7 +68,7 @@ PLAYER player;
 #define VEL_X_PEIXE                2
 #define VEL_Y_PEIXE                1
 #define TOTAL_FRAMES_PEIXE         2
-#define VEL_ANIMACAO_PEIXE         5
+#define VEL_ANIMACAO_PEIXE         8
 #define PEIXE_MAX                  10
 #define PEIXE_ACERELADO            1
 
@@ -226,7 +226,7 @@ void desenharPeixe() {
     
     for (int p = 0; p < PEIXE_MAX; p++) {
 
-        if (peixe[p].vivo == 1) {
+        if (peixe[p].vivo) {
 
             for (int i = 0; i < ALTURA_PEIXE; i++) {
                 for (int j = 0; j < LARGURA_PEIXE; j++) {
@@ -304,26 +304,47 @@ void alterarCorPeixe() {
 }
 
 void spawnarPeixes() {
-
-    if (rand() % 4 != 0)
-    {
-        return;
-    }
-
-    int alturaMin = 4;
-    int alturaMax = TELA_ALTURA - 4 - ALTURA_PEIXE;
     
-    int alturaBase = 0;
+    // Chance
+
+    if (rand() % 4 != 0) { return; }
+
+    // Cardume
+
+    int peixesLivres = 0;
+
+    for (int p = 0; p < PEIXE_MAX; p++) { if (!peixe[p].vivo) { peixesLivres++; } }
+    if (!peixesLivres) { return; }
+    
+    int cardume = peixesLivres;
+    if (cardume >= 3) { cardume = 3; };
+
+    // Constantes
+    
+    int tamanhoCardumeFinal, alturaBaseFinal, ladoNascerFinal;
+
     int posicaoLivre = 0;
     int tentativas = 0;
 
+    // Verificação de linhas livres
+
     while (tentativas < 5) {
-        alturaBase = alturaMin + (rand() % (alturaMax - alturaMin + 1));
+
+        int tamanhoCardume = rand() % cardume + 1;
+
+        int alturaMin = 3;
+        int alturaMax = TELA_ALTURA - 3 - (tamanhoCardume * ALTURA_PEIXE);
+        if (alturaMax < alturaMin) { alturaMax = alturaMin; }
+
+        int alturaBase = alturaMin + (rand() % (alturaMax - alturaMin + 1));
+
+        int ladoNascer = (rand() % 2 == 0);
+
         posicaoLivre = 1;
         
         for (int p = 0; p < PEIXE_MAX; p++) {
             if (peixe[p].vivo) {
-                if (abs(alturaBase - peixe[p].y) < ALTURA_PEIXE + 1) {
+                if (abs(alturaBase - peixe[p].y) < (tamanhoCardume * ALTURA_PEIXE + 1)) {
                     posicaoLivre = 0;
                     break;
                 }
@@ -331,6 +352,9 @@ void spawnarPeixes() {
         }
 
         if (posicaoLivre == 1) {
+            tamanhoCardumeFinal = tamanhoCardume;
+            alturaBaseFinal = alturaBase;
+            ladoNascerFinal = ladoNascer;
             break;
         }
 
@@ -341,7 +365,9 @@ void spawnarPeixes() {
         return;
     }
 
-    int ladoNascer = (rand() % 2 == 0);
+    // Nascimento
+
+    int peixesNascidos = 0;
 
     for (int p = 0; p < PEIXE_MAX; p++)
     {
@@ -349,18 +375,18 @@ void spawnarPeixes() {
         {
             peixe[p].vivo = 1;
             peixe[p].vida = 1;
-            peixe[p].y = alturaBase;
+            peixe[p].y = alturaBaseFinal + (peixesNascidos * ALTURA_PEIXE);
 
             WORD corPeixe;
 
             do
             {
-                corPeixe = FOREGROUND_RED | (rand() % 2 ? FOREGROUND_GREEN : 0) | (rand() % 2 ? FOREGROUND_BLUE : 0);
+                corPeixe = FOREGROUND_RED | (rand() % 2 ? FOREGROUND_GREEN | FOREGROUND_INTENSITY : 0) | FOREGROUND_INTENSITY;
             } while (corPeixe == peixe[p].cor);
             
             peixe[p].cor = corPeixe;
 
-            if (ladoNascer)
+            if (ladoNascerFinal)
             {
                 peixe[p].x = 0 - LARGURA_PEIXE;
                 peixe[p].dx = 1;
@@ -370,8 +396,10 @@ void spawnarPeixes() {
                 peixe[p].x = TELA_LARGURA + LARGURA_PEIXE;
                 peixe[p].dx = -1;
             }
+            
+            peixesNascidos++;
 
-            break;
+            if (peixesNascidos >= tamanhoCardumeFinal) { break; }
         }
     }
 }
@@ -457,7 +485,7 @@ void updateTiro()
 
 void updatePeixe() {
     for (int p = 0; p < PEIXE_MAX; p++) {
-        if (peixe[p].vivo == 1) {
+        if (peixe[p].vivo) {
 
             peixe[p].x += peixe[p].dx * PEIXE_ACERELADO;
 
