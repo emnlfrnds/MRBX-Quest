@@ -160,6 +160,20 @@ typedef struct {
 
 TUBARAO tubarao;
 
+#define VEL_TIRO 5
+#define ICON_TIRO '='
+#define MAX_TIRO 10
+#define POS_TIRO_D 6
+#define POS_TIRO_E 1
+
+typedef struct {
+    int x, y,
+        dx,
+        ativo;
+} TIRO;
+
+TIRO tiros[MAX_TIRO];
+
 //Coisas do buffer
 HANDLE hConsole;
 CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
@@ -199,6 +213,26 @@ void desenhaPlayer()
     }
 }
 
+void desenhaTiro()
+{
+    for(int i = 0; i < MAX_TIRO; i++)
+    {   
+        TIRO tiro = tiros[i]; 
+        if(tiro.ativo)
+        {
+            int posX = tiro.x,
+                posY = tiro.y,
+                indice = posY * TELA_LARGURA + posX;
+
+
+            if(posX < TELA_LARGURA && posX > 0){
+                consoleBuffer[indice].Char.AsciiChar = ICON_TIRO;
+                consoleBuffer[indice].Attributes =  FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_BLUE;
+            }
+        }
+    }
+}
+
 void desenhaMapa()
 {
     for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; i++)
@@ -213,6 +247,7 @@ void desenhaTela()
 {
     desenhaMapa();
     desenhaPlayer();
+    desenhaTiro();
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
 }
 
@@ -235,6 +270,24 @@ void acoesPlayer()
         player.y += VELOCIDADE_Y_PLAYER;
     if (GetAsyncKeyState(VK_UP))
         player.y -= VELOCIDADE_Y_PLAYER;
+}
+
+void acaoTiro()
+{
+    if (GetAsyncKeyState(VK_SPACE))
+    {   
+        for(int i = 0; i < MAX_TIRO; i++)
+            {
+                if(!tiros[i].ativo)
+                {
+                    tiros[i].ativo = 1;
+                    tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
+                    tiros[i].y = player.y + 1;
+                    tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
+                    break;
+                }
+            }
+    }
 }
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
@@ -261,9 +314,26 @@ void updatePlayer()
     }
 }
 
+void updateTiro()
+{   
+    acaoTiro();
+    for(int i = 0; i < MAX_TIRO; i++)
+    {   
+        if(tiros[i].ativo)
+        {
+            tiros[i].x += tiros[i].dx;
+            if(tiros[i].x < 0 || tiros[i].x > TELA_LARGURA)
+            {
+                tiros[i].ativo = 0;
+            }
+        }
+    }
+}
+
 void update()
 {
     updatePlayer();
+    updateTiro();
     desenhaTela();
 
     relogioGlobal++;
@@ -276,9 +346,18 @@ void iniciarPlayer()
     player.y = 15;
 }
 
+void iniciarTiros()
+{
+    for(int i = 0; i < MAX_TIRO; i++)
+    {   
+        tiros[i].ativo = 0;
+    }
+}
+
 void iniciar()
 {
     iniciarPlayer();
+    iniciarTiros();
 }
 
 // ---------------------------------- Main ----------------------------------
