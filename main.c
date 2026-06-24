@@ -62,8 +62,8 @@ PLAYER player;
 
 //Enzo Emanoel: Criação do peixe
 
-#define ALTURA_PEIXE               2
-#define LARGURA_PEIXE              2
+#define ALTURA_PEIXE               3
+#define LARGURA_PEIXE              13
 #define VEL_X_PEIXE                2
 #define VEL_Y_PEIXE                1
 #define TOTAL_FRAMES_PEIXE         2
@@ -74,12 +74,12 @@ PLAYER player;
 */
 const char *PEIXE_DIREITA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     {
-        "\\____)\\____ ",
+        "\\____)\\____",
         "/-v___ __`<  ",
         "     )/      "
     },
     {
-        "\\____)\\____ ",
+        "\\____)\\____",
         "/-v___ __`=  ",
         "     )/      "
     }
@@ -112,8 +112,8 @@ PEIXE peixe;
 
 //Enzo Emanoel: Criação do tubarão
 
-#define ALTURA_TUBARAO             2
-#define LARGURA_TUBARAO            2
+#define ALTURA_TUBARAO             3
+#define LARGURA_TUBARAO            13
 #define VEL_X_TUBARAO              2
 #define VEL_Y_TUBARAO              1
 #define TOTAL_FRAMES_TUBARAO       2
@@ -124,7 +124,7 @@ PEIXE peixe;
 */
 const char *TUBARAO_DIREITA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {
-        "\\____)\\____ ",
+        "\\____)\\____",
         "/-v___ __`<  ",
         "     )/      "
     },
@@ -206,7 +206,11 @@ void desenhaPlayer()
                 if (caractere != ' ')
                 {
                     consoleBuffer[indice].Char.AsciiChar = caractere;
-                    consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE;
+                    if(player.y <= 4 && i < 1){
+                        consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_INTENSITY;
+                        continue;    
+                    }
+                    consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
                 }
             }
         }
@@ -236,13 +240,16 @@ void desenhaTiro()
 void desenhaMapa()
 {
     for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; i++)
-    {
+    {   
         consoleBuffer[i].Char.AsciiChar = ' ';
+        if(i < TELA_LARGURA * 5){
+            consoleBuffer[i].Attributes = BACKGROUND_BLUE | BACKGROUND_INTENSITY;
+            continue;
+        }
         consoleBuffer[i].Attributes = BACKGROUND_BLUE;
     }
 }
 
-// Enzo Capitani: Criação do desenhaTela();
 void desenhaTela()
 {
     desenhaMapa();
@@ -300,9 +307,9 @@ void updatePlayer()
     {
         player.x = 0;
     }
-    if (player.y < 2)
+    if (player.y < 4)
     {
-        player.y = 2;
+        player.y = 4;
     }
     if (player.x + LARGURA_PLAYER > TELA_LARGURA)
     {
