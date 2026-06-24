@@ -60,7 +60,7 @@ const char *(*PLAYER_SPRITE)[ALTURA_PLAYER] = PLAYER_DIREITA;
 typedef struct
 {
     int x, y, score, nivelOxigenio, frameAtual;
-    int vida;
+    int vida, respirando;
 } PLAYER;
 
 PLAYER player;
@@ -217,6 +217,11 @@ void tocarSom(Mix_Chunk* som)
     if(som != NULL){
         Mix_PlayChannel(-1, som, 0);
     }
+}
+
+void pararSom(int canal)
+{
+    Mix_HaltChannel(canal);
 }
 
 // ---------------------------------- Métodos de desenhos ----------------------------------
@@ -432,16 +437,26 @@ void updatePlayer()
         player.nivelOxigenio = NIVEL_MAX_OXIGENIO;
 
     if(player.y <= ALTURA_CEU - 1){
+        player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
-        if(player.nivelOxigenio < 1000)
+        if(player.nivelOxigenio < 1000){
             tocarSomCanalEspecifico(somRespirando, 6);
+        }else{
+            pararSom(6);
+        }
     }else{
+        player.respirando = 0;
         player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
     }
 
     if(player.nivelOxigenio < 250)
-    {
+    {   
         tocarSomCanalEspecifico(somAlerta, 7);
+
+    }
+
+    if(player.respirando){
+        pararSom(7);
     }
 
 }
@@ -479,6 +494,7 @@ void iniciarPlayer()
     player.nivelOxigenio = 1000;
     player.vida = 5;
     player.score = 0;
+    player.respirando = 0;
 }
 
 void iniciarTiros()
