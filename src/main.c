@@ -107,20 +107,6 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     }
 };
 
-const char *(*PEIXE_SPRITE)[ALTURA_PEIXE] = PEIXE_DIREITA;
-
-// Struct do peixe
-typedef struct {
-    int x, y;
-    int dx, dy;
-    int vivo;
-    int vida;
-    WORD cor;
-} PEIXE;
-
-PEIXE peixe[PEIXE_MAX];
-
-/*
 //Enzo Emanoel: Criação do tubarão
 
 #define ALTURA_TUBARAO             3
@@ -130,11 +116,11 @@ PEIXE peixe[PEIXE_MAX];
 #define TOTAL_FRAMES_TUBARAO       2
 #define VEL_ANIMACAO_TUBARAO       1
 #define TUBARAO_MAX                5
-#define TUBARAO_ACELERADO          1.0
+#define TUBARAO_ACELERADO          1
 
-
+/*
     Enzo Emanoel: Sprites iniciais do tubarão
-
+*/
 const char *TUBARAO_DIREITA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {
         "\\____)\\____",
@@ -161,20 +147,21 @@ const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     }
 };
 
-const char *(*TUBARAO_SPRITE)[ALTURA_TUBARAO] = TUBARAO_DIREITA;
-
-// Struct do tubarão
+// Struct das peixes
 typedef struct {
     int x, y;
     int dx, dy;
-    int vivo, ativo;
+    int vivo;
     int vida;
+    int altura;
+    int largura;
+    const char **sprite;
     WORD cor;
-} TUBARAO;
+} PEIXES;
 
-TUBARAO tubarao;
-*/
+PEIXES peixe[PEIXE_MAX], tubarao[TUBARAO_MAX];
 
+// Tiro
 #define VEL_TIRO 5
 #define ICON_TIRO '='
 #define MAX_TIRO 20
@@ -251,6 +238,32 @@ void tocarSom(Mix_Chunk* som)
 void pararSom(int canal)
 {
     Mix_HaltChannel(canal);
+}
+
+// ---------------------------------- Animações das Entidades ------------------------------
+
+void animacaoEntidades() {
+
+    int framePeixe = (relogioGlobal / VEL_ANIMACAO_PEIXE) % TOTAL_FRAMES_PEIXE;
+    int frameTubarao = (relogioGlobal / VEL_ANIMACAO_TUBARAO) % TOTAL_FRAMES_TUBARAO;
+
+    for (int p = 0; p < PEIXE_MAX; p++) {
+        if (peixe[p].vivo) {
+            if (peixe[p].dx > 0) {
+                peixe[p].sprite = (const char **)PEIXE_DIREITA[framePeixe];
+            } else {
+                peixe[p].sprite = (const char **)PEIXE_ESQUERDA[framePeixe];
+            }
+        }
+    }
+
+    for (int t = 0; t < TUBARAO_MAX; t++) {
+        if (tubarao[t].vivo) {
+            tubarao[t].sprite = (const char **)TUBARAO_DIREITA[frameTubarao];
+        } else {
+            tubarao[t].sprite = (const char **)TUBARAO_ESQUERDA[frameTubarao]; 
+        }
+    }
 }
 
 // ---------------------------------- Métodos de desenhos ----------------------------------
@@ -350,27 +363,29 @@ void desenhaPlayer()
     }
 }
 
-void desenharPeixe() {
-    
-    for (int p = 0; p < PEIXE_MAX; p++) {
+void desenharEntidades(PEIXES entidade[], int entidade_max) {
+    for (int e = 0; e < entidade_max; e++) {
+        if (!entidade[e].vivo) {
+            continue;
+        }
 
-        if (peixe[p].vivo) {
+        int alturaEntidade = entidade[e].altura;
+        int larguraEntidade = entidade[e].largura;
 
-            for (int i = 0; i < ALTURA_PEIXE; i++) {
-                for (int j = 0; j < LARGURA_PEIXE; j++) {
+        for (int i = 0; i < alturaEntidade; i++) {
+            for (int j = 0; j < larguraEntidade; j++) {
 
-                    int frameAtualPeixe = (relogioGlobal / VEL_ANIMACAO_PEIXE) % TOTAL_FRAMES_PEIXE;
+                int px = entidade[e].x + j;
+                int py = entidade[e].y + i;
 
-                    int px = peixe[p].x + j;
-                    int py = peixe[p].y + i;
+                if (px >= 0 && px < TELA_LARGURA && py >= 0 && py < TELA_ALTURA) {
+                    char caractere = entidade[e].sprite[i][j];
 
-                    if (px >= 0 && px < TELA_LARGURA && py >= 0 && py < TELA_ALTURA) {
-
-                        int desenhoPeixe = (peixe[p].dx == 1) ? PEIXE_DIREITA[frameAtualPeixe][i][j] : PEIXE_ESQUERDA[frameAtualPeixe][i][j];
-                        int indicePeixe = py * TELA_LARGURA + px;
-                        consoleBuffer[indicePeixe].Char.AsciiChar = desenhoPeixe;
-                        consoleBuffer[indicePeixe].Attributes = peixe[p].cor | BACKGROUND_BLUE;
-
+                    if (caractere != ' ') {
+                        int indice = py * TELA_LARGURA + px;
+                        
+                        consoleBuffer[indice].Char.AsciiChar = caractere;
+                        consoleBuffer[indice].Attributes = entidade[e].cor | BACKGROUND_BLUE;
                     }
                 }
             }
@@ -444,25 +459,14 @@ void desenhaTela()
     desenhaScore();
     desenhaBarraOxigenio();
     desenhaPlayer();
-    desenharPeixe();
+    desenharEntidades(peixe, PEIXE_MAX);
+    desenharEntidades(tubarao, TUBARAO_MAX);
     desenhaTiro();
     desenhaMorto();
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
 }
 
 // ---------------------------------- Sistemas Autônomos --------------------------------
-
-void alterarCorPeixe() {
-    WORD corPeixe;
-
-    for (int p = 0; p < PEIXE_MAX; p++) {
-        do
-        {
-            corPeixe = FOREGROUND_RED | (rand() % 2 ? FOREGROUND_GREEN : 0) | (rand() % 2 ? FOREGROUND_BLUE : 0);
-        } while (corPeixe == peixe[p].cor);
-        peixe[p].cor = corPeixe;
-    }
-}
 
 void spawnarPeixes() {
     
@@ -537,6 +541,9 @@ void spawnarPeixes() {
             peixe[p].vivo = 1;
             peixe[p].vida = 1;
             peixe[p].y = alturaBaseFinal + (peixesNascidos * ALTURA_PEIXE);
+
+            peixe[p].altura = ALTURA_PEIXE;
+            peixe[p].largura = LARGURA_PEIXE;
 
             WORD corPeixe;
 
@@ -789,6 +796,7 @@ void updateMorto()
 void update()
 {   
     spawnarPeixes();
+    animacaoEntidades();
     updatePlayer();
     updatePeixe();
     updateTiro();
