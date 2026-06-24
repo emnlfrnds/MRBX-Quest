@@ -98,8 +98,6 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     }
 };
 
-const char *(*PEIXE_SPRITE)[ALTURA_PEIXE] = PEIXE_DIREITA;
-
 // Struct do peixe
 typedef struct {
     int x, y;
