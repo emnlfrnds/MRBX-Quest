@@ -7,6 +7,7 @@
 #define TELA_LARGURA 125
 #define TELA_ALTURA  25
 #define DELAY        90
+#define ALTURA_CEU   4
 
 //Enzo Capitani: Criação do player
 
@@ -16,6 +17,7 @@
 #define VELOCIDADE_Y_PLAYER        1
 #define TOTAL_FRAMES_JOGADOR       3
 #define VELOCIDADE_ANIMACAO_PLAYER 1 // as velocidades de animação são inversamente proporcionais ao seus defines
+#define NIVEL_MAX_OXIGENIO         1000
 
 /*
     Enzo Capitani: Sprites iniciais do submarino
@@ -162,7 +164,7 @@ TUBARAO tubarao;
 
 #define VEL_TIRO 5
 #define ICON_TIRO '='
-#define MAX_TIRO 10
+#define MAX_TIRO 20
 #define POS_TIRO_D 6
 #define POS_TIRO_E 1
 
@@ -185,6 +187,69 @@ int relogioGlobal = 0;
 
 // ---------------------------------- Métodos de desenhos ----------------------------------
 
+void desenhaScore()
+{
+    char textoScore[30];
+    sprintf(textoScore, "Score: %d", player.score);
+
+    int inicio = TELA_LARGURA + 5;
+    for (int i = 0; textoScore[i] != '\0'; i++)
+    {
+        consoleBuffer[inicio + i].Char.AsciiChar = textoScore[i];
+        consoleBuffer[inicio + i].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
+    }
+}
+
+void desenhaVida()
+{
+    char textoVida[15];
+    sprintf(textoVida, "Vida: %d", player.vida);
+
+    int inicio = TELA_LARGURA * 2 - 15;
+    for (int i = 0; textoVida[i] != '\0'; i++)
+    {
+        consoleBuffer[inicio + i].Char.AsciiChar = textoVida[i];
+        consoleBuffer[inicio + i].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
+    }
+}
+
+void desenhaBarraOxigenio()
+{
+    int frameAtual = relogioGlobal % 3;
+
+    WORD corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
+
+    if (frameAtual == 0 && player.nivelOxigenio < 250)
+    {
+        corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED;
+    }
+
+    char barras[25];
+    int indiceBarras = 0;
+    for (int i = 0; i <= 1000; i += 50)
+    {
+        if (i <= player.nivelOxigenio)
+        {
+            barras[indiceBarras] = '|';
+            indiceBarras++;
+            continue;
+        }
+        barras[indiceBarras] = ' ';
+        indiceBarras++;
+    }
+    barras[21] = '\0';
+
+    char barraOxigenio[51];
+    sprintf(barraOxigenio, "OXIGENIO: [%s]", barras);
+
+    int inicio = TELA_LARGURA + 40;
+    for (int i = 0; barraOxigenio[i] != '\0'; i++)
+    {
+        consoleBuffer[inicio + i].Char.AsciiChar = barraOxigenio[i];
+        consoleBuffer[inicio + i].Attributes = corBarraOx;
+    }
+}
+
 void desenhaPlayer()
 {
     int frameAtualPlayer = (relogioGlobal / VELOCIDADE_ANIMACAO_PLAYER) % TOTAL_FRAMES_JOGADOR;
@@ -206,7 +271,7 @@ void desenhaPlayer()
                 if (caractere != ' ')
                 {
                     consoleBuffer[indice].Char.AsciiChar = caractere;
-                    if(player.y <= 4 && i < 1){
+                    if(player.y <= ALTURA_CEU - 1 && i < 1){
                         consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_INTENSITY;
                         continue;    
                     }
@@ -242,7 +307,7 @@ void desenhaMapa()
     for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; i++)
     {   
         consoleBuffer[i].Char.AsciiChar = ' ';
-        if(i < TELA_LARGURA * 5){
+        if(i < TELA_LARGURA * ALTURA_CEU){
             consoleBuffer[i].Attributes = BACKGROUND_BLUE | BACKGROUND_INTENSITY;
             continue;
         }
@@ -253,6 +318,9 @@ void desenhaMapa()
 void desenhaTela()
 {
     desenhaMapa();
+    desenhaVida();
+    desenhaScore();
+    desenhaBarraOxigenio();
     desenhaPlayer();
     desenhaTiro();
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
@@ -307,9 +375,9 @@ void updatePlayer()
     {
         player.x = 0;
     }
-    if (player.y < 4)
+    if (player.y < ALTURA_CEU - 1)
     {
-        player.y = 4;
+        player.y = ALTURA_CEU - 1;
     }
     if (player.x + LARGURA_PLAYER > TELA_LARGURA)
     {
@@ -319,6 +387,19 @@ void updatePlayer()
     {
         player.y = TELA_ALTURA - ALTURA_PLAYER - 2;
     }
+
+    if(player.nivelOxigenio < 0)
+        player.nivelOxigenio = 0;
+
+    if(player.nivelOxigenio > NIVEL_MAX_OXIGENIO)
+        player.nivelOxigenio = NIVEL_MAX_OXIGENIO;
+
+    if(player.y <= ALTURA_CEU - 1){
+        player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
+    }else{
+        player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
+    }
+
 }
 
 void updateTiro()
@@ -351,6 +432,9 @@ void iniciarPlayer()
 {
     player.x = 30;
     player.y = 15;
+    player.nivelOxigenio = 1000;
+    player.vida = 5;
+    player.score = 0;
 }
 
 void iniciarTiros()
