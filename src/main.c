@@ -214,6 +214,7 @@ Mix_Chunk* somTiro = NULL;
 Mix_Chunk* somAlerta = NULL;
 Mix_Chunk* somRespirando = NULL;
 Mix_Chunk* somDano = NULL;
+Mix_Chunk* somMortePeixe = NULL;
 
 int relogioGlobal = 0;
 
@@ -776,6 +777,9 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                         entidade[e].vida--;
                         tiros[t].ativo = 0;
                         player.score += 100;
+
+                        if(entidade[e].vida <= 0) tocarSom(somMortePeixe);
+
                         break;
                     }
                 }
@@ -1014,6 +1018,7 @@ void iniciarSons()
     carregarSom(&somAlerta, "src/sons/Alerta1.wav");
     carregarSom(&somRespirando, "src/sons/respirando1.wav");
     carregarSom(&somDano, "src/sons/dano2.wav");
+    carregarSom(&somMortePeixe, "src/sons/peixeehumanomorto.wav");
 }
 
 void iniciar()
