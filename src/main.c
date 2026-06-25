@@ -132,12 +132,12 @@ int VEL_TUBARAO;
 const char *TUBARAO_DIREITA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {
         "\\____)\\____",
-        "/-v___ __`< ",
+        "/-v___ __`ww",
         "     )/     "
     },
     {
         "\\____)\\____",
-        "/-v___ __`= ",
+        "/-v___ __`==",
         "     )/     "
     }
 };
@@ -145,12 +145,12 @@ const char *TUBARAO_DIREITA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
 const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {
         "____/(____/ ",
-        " >`__ ___v-\\",
+        "ww`__ ___v-\\",
         "    )/      ",
     },
     {
         "____/(____/ ",
-        " =`__ ___v-\\",
+        "==`__ ___v-\\",
         "    )/      ",
     }
 };
@@ -823,11 +823,14 @@ void colisoes()
 
 // TODO: Adicionar morte por vida
 // TODO: Adicionar morte por oxigenio
+// TODO: Mudar as velocidades para float
 
+/*
 void aumentarVelEntidades() {
     VEL_PEIXE = 1 + (player.score / 2000);
     VEL_TUBARAO = 1 + (player.score / 2000);
 }
+*/
 
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
@@ -886,7 +889,7 @@ void updatePlayer()
         player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
     }
 
-    aumentarVelEntidades();
+    // aumentarVelEntidades();
 
 }
 
