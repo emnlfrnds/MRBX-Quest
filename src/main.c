@@ -13,6 +13,14 @@
 #define DELAY        90
 #define ALTURA_CEU   4
 
+// Array com 6 cores vibrantes
+const WORD PALETA_DE_CORES[] = {
+    FOREGROUND_GREEN | FOREGROUND_INTENSITY,                                    // Verde
+    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,                   // Amarelo
+    FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,                  // Ciano / Azul Claro
+    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY  // Branco
+}; const int TOTAL_CORES = 4;
+
 //Enzo Capitani: Criação do player
 
 #define ALTURA_PLAYER              2
@@ -75,8 +83,8 @@ PLAYER player;
 #define VEL_Y_PEIXE                1
 #define TOTAL_FRAMES_PEIXE         2
 #define VEL_ANIMACAO_PEIXE         8
-#define PEIXE_MAX                  10
-#define PEIXE_ACERELADO            1
+#define PEIXE_MAX                  15
+#define VEL_PEIXE                  1
 
 /*
     Enzo Emanoel: Sprites iniciais do peixe
@@ -114,9 +122,9 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
 #define VEL_X_TUBARAO              2
 #define VEL_Y_TUBARAO              1
 #define TOTAL_FRAMES_TUBARAO       2
-#define VEL_ANIMACAO_TUBARAO       1
+#define VEL_ANIMACAO_TUBARAO       8
 #define TUBARAO_MAX                5
-#define TUBARAO_ACELERADO          1
+#define VEL_TUBARAO                1
 
 /*
     Enzo Emanoel: Sprites iniciais do tubarão
@@ -259,9 +267,11 @@ void animacaoEntidades() {
 
     for (int t = 0; t < TUBARAO_MAX; t++) {
         if (tubarao[t].vivo) {
-            tubarao[t].sprite = (const char **)TUBARAO_DIREITA[frameTubarao];
-        } else {
-            tubarao[t].sprite = (const char **)TUBARAO_ESQUERDA[frameTubarao]; 
+            if (tubarao[t].dx > 0) {
+                tubarao[t].sprite = (const char **)TUBARAO_DIREITA[frameTubarao];
+            } else {
+                tubarao[t].sprite = (const char **)TUBARAO_ESQUERDA[frameTubarao]; 
+            }
         }
     }
 }
@@ -549,7 +559,8 @@ void spawnarPeixes() {
 
             do
             {
-                corPeixe = FOREGROUND_RED | (rand() % 2 ? FOREGROUND_GREEN | FOREGROUND_INTENSITY : 0) | FOREGROUND_INTENSITY;
+                int indiceCor = rand() % TOTAL_CORES;
+                corPeixe = PALETA_DE_CORES[indiceCor];
             } while (corPeixe == peixe[p].cor);
             
             peixe[p].cor = corPeixe;
@@ -569,6 +580,104 @@ void spawnarPeixes() {
 
             if (peixesNascidos >= tamanhoCardumeFinal) { break; }
         }
+    }
+}
+
+void spawnarTubarao() {
+    
+    // Chance
+
+    if (rand() % 4 != 0) { return; }
+
+    // Constantes
+    
+    int alturaBaseFinal, ladoNascerFinal;
+
+    int posicaoLivre = 0;
+    int tentativas = 0;
+
+    // Verificação de linhas livres
+
+    while (tentativas < 5) {
+
+        int alturaMin = 4;
+        int alturaMax = TELA_ALTURA - 2 - ALTURA_TUBARAO;
+        if (alturaMax < alturaMin) { alturaMax = alturaMin; }
+
+        int alturaBase = alturaMin + (rand() % (alturaMax - alturaMin + 1));
+
+        int ladoNascer = (rand() % 2 == 0);
+
+        posicaoLivre = 1;
+        
+        for (int t = 0; t < TUBARAO_MAX; t++) {
+            if (tubarao[t].vivo) {
+                if (abs(alturaBase - tubarao[t].y) < (ALTURA_TUBARAO + 1)) {
+                    posicaoLivre = 0;
+                    break;
+                }
+            }
+        }
+
+        if (posicaoLivre == 1) {
+            alturaBaseFinal = alturaBase;
+            ladoNascerFinal = ladoNascer;
+            break;
+        }
+
+        tentativas++;
+    }
+
+    if (posicaoLivre == 0) {
+        return;
+    }
+
+    // Nascimento
+
+    for (int t = 0; t < TUBARAO_MAX; t++)
+    {
+        if (!tubarao[t].vivo)
+        {
+            tubarao[t].vivo = 1;
+            tubarao[t].vida = 3;
+            tubarao[t].y = alturaBaseFinal;
+
+            tubarao[t].altura = ALTURA_TUBARAO;
+            tubarao[t].largura = LARGURA_TUBARAO;
+
+            WORD corTubarao;
+
+            do
+            {
+                int indiceCor = rand() % TOTAL_CORES;
+                corTubarao = PALETA_DE_CORES[indiceCor];
+            } while (corTubarao == tubarao[t].cor);
+            
+            tubarao[t].cor = corTubarao;
+
+            if (ladoNascerFinal)
+            {
+                tubarao[t].x = 0 - LARGURA_TUBARAO;
+                tubarao[t].dx = 1;
+            }
+            else
+            {
+                tubarao[t].x = TELA_LARGURA + LARGURA_TUBARAO;
+                tubarao[t].dx = -1;
+            }
+
+            break;
+        }
+    }
+}
+
+void gerenciarSpawns() {
+    int sorteio = rand() % 100;
+
+    if (sorteio < 15) {
+        spawnarTubarao(); 
+    } else {
+        spawnarPeixes(); 
     }
 }
 
@@ -631,17 +740,17 @@ void acaoTiro()
 
 // ---------------------------------- Métodos de colisões ----------------------------------
 
-void colisaoPlayerPeixe()
+void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
 {
-    for (int p = 0; p < PEIXE_MAX; p++)
+    for (int e = 0; e < entidade_MAX; e++)
     {
-        if (player.x + LARGURA_PLAYER > peixe[p].x &&
-             player.x < peixe[p].x + LARGURA_PEIXE &&
-              player.y + ALTURA_PLAYER > peixe[p].y &&
-               player.y < peixe[p].y + ALTURA_PEIXE && peixe[p].vivo == 1)
+        if (player.x + LARGURA_PLAYER > entidade[e].x &&
+             player.x < entidade[e].x + LARGURA_PEIXE &&
+              player.y + ALTURA_PLAYER > entidade[e].y &&
+               player.y < entidade[e].y + ALTURA_PEIXE && entidade[e].vivo == 1)
         {
-            peixe[p].vivo = 0;
-            peixe[p].x = 0;
+            entidade[e].vivo = 0;
+            entidade[e].x = 0;
             player.vida--;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -651,20 +760,20 @@ void colisaoPlayerPeixe()
     }
 }
 
-void colisaoPeixeTiro()
+void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidade, int largura_entidade)
 {
     for (int t = 0; t < MAX_TIRO; t++)
     {
         if (tiros[t].ativo)
         {
-            for (int p = 0; p < PEIXE_MAX; p++)
+            for (int e = 0; e < entidade_MAX; e++)
             {
-                if (peixe[p].vivo)
+                if (entidade[e].vivo)
                 {
-                    if (peixe[p].y < tiros[t].y + 1 && peixe[p].y + ALTURA_PEIXE > tiros[t].y &&
-                        peixe[p].x < tiros[t].x + 1 && peixe[p].x + LARGURA_PEIXE > tiros[t].x)
+                    if (entidade[e].y < tiros[t].y + 1 && entidade[e].y + altura_entidade > tiros[t].y &&
+                        entidade[e].x < tiros[t].x + 1 && entidade[e].x + largura_entidade > tiros[t].x)
                     {
-                        peixe[p].vida--;
+                        entidade[e].vida--;
                         tiros[t].ativo = 0;
                         player.score += 100;
                         break;
@@ -679,11 +788,39 @@ void colisaoPeixeTiro()
     }
 }
 
+int checkColisaoEntidades(PEIXES entidade1, PEIXES entidade2) {
+    int colisaoX = (entidade1.x < entidade2.x + entidade2.largura) && (entidade1.x + entidade1.largura > entidade2.x);
+    int colisaoY = (entidade1.y < entidade2.y + entidade2.altura) && (entidade1.y + entidade1.altura > entidade2.y);
+    
+    return colisaoX && colisaoY;
+}
+
+void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entidade2[], int entidade2_MAX) {
+    for (int e1; e1 < entidade1_MAX; e1++) {
+        if (!entidade1[e1].vivo) { continue; }
+
+        for (int e2; e2 < entidade2_MAX; e2++) {
+            if (!entidade2[e2].vivo) { continue; }
+
+            if (checkColisaoEntidades(entidade1[e1], entidade2[e2])) {
+                entidade2[e2].vivo = 0;
+            }
+        }
+
+    }
+}
+
 void colisoes()
 {
-    colisaoPlayerPeixe();
-    colisaoPeixeTiro();
+    colisaoPlayerEntidade(peixe, PEIXE_MAX);
+    colisaoPlayerEntidade(tubarao, TUBARAO_MAX);
+    colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE);
+    colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO);
+    checkEncontrosEntidades(peixe, PEIXE_MAX, tubarao, TUBARAO_MAX);
+
 }
+
+// ---------------------------------- Sistema de dificuldade ----------------------------------
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
 
@@ -741,6 +878,8 @@ void updatePlayer()
         player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
     }
 
+
+
 }
 
 void updateTiro()
@@ -759,19 +898,19 @@ void updateTiro()
     }
 }
 
-void updatePeixe() {
-    for (int p = 0; p < PEIXE_MAX; p++) {
-        if (peixe[p].vivo && peixe[p].vida <= 0)
+void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, int vel_entidade) {
+    for (int e = 0; e < entidade_MAX; e++) {
+        if (entidade[e].vivo && entidade[e].vida <= 0)
         {
-            peixe[p].vivo = 0;
-            matarEntidade(peixe[p].x, peixe[p].y);
+            entidade[e].vivo = 0;
+            matarEntidade(entidade[e].x, entidade[e].y);
         }
-        if (peixe[p].vivo) {
+        if (entidade[e].vivo) {
 
-            peixe[p].x += peixe[p].dx * PEIXE_ACERELADO;
+            entidade[e].x += entidade[e].dx * vel_entidade;
 
-            if (peixe[p].x <= 0 - LARGURA_PEIXE || peixe[p].x > TELA_LARGURA + LARGURA_PEIXE) {
-                peixe[p].vivo = 0;
+            if (entidade[e].x <= 0 - largura_entidade || entidade[e].x > TELA_LARGURA + largura_entidade) {
+                entidade[e].vivo = 0;
             }
         }
     }
@@ -792,13 +931,13 @@ void updateMorto()
     }
 }
 
-
 void update()
 {   
-    spawnarPeixes();
+    gerenciarSpawns();
     animacaoEntidades();
     updatePlayer();
-    updatePeixe();
+    updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, VEL_PEIXE);
+    updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, VEL_TUBARAO);
     updateTiro();
     updateMorto();
     colisoes();
@@ -819,10 +958,10 @@ void iniciarPlayer()
     player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 }
 
-void iniciarPeixe()
+void iniciarEntidade(PEIXES entidade[], int entidade_MAX)
 {
-    for (int p = 0; p < PEIXE_MAX; p++) {
-        peixe[p].vivo = 0;
+    for (int e = 0; e < entidade_MAX; e++) {
+        entidade[e].vivo = 0;
     }
 }
 
@@ -873,7 +1012,8 @@ void iniciar()
     iniciarSons();
 
     iniciarPlayer();
-    iniciarPeixe();
+    iniciarEntidade(peixe, PEIXE_MAX);
+    iniciarEntidade(tubarao, TUBARAO_MAX);
     iniciarTiros();
     iniciarMorto();
 }
