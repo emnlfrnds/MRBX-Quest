@@ -823,14 +823,13 @@ void colisoes()
 
 // TODO: Adicionar morte por vida
 // TODO: Adicionar morte por oxigenio
-// TODO: Mudar as velocidades para float
 
-/*
+// TODO: Mudar as velocidades para float (E. Emanoel)
 void aumentarVelEntidades() {
-    VEL_PEIXE = 1 + (player.score / 2000);
-    VEL_TUBARAO = 1 + (player.score / 2000);
+    VEL_PEIXE = 1; // + (player.score / 2000);
+    VEL_TUBARAO = 1; // + (player.score / 2000);
 }
-*/
+
 
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
@@ -889,7 +888,7 @@ void updatePlayer()
         player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
     }
 
-    // aumentarVelEntidades();
+    aumentarVelEntidades();
 
 }
 
