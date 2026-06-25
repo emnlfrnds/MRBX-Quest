@@ -84,7 +84,7 @@ PLAYER player;
 #define TOTAL_FRAMES_PEIXE         2
 #define VEL_ANIMACAO_PEIXE         8
 #define PEIXE_MAX                  15
-#define VEL_PEIXE                  1
+int VEL_PEIXE;
 
 /*
     Enzo Emanoel: Sprites iniciais do peixe
@@ -124,7 +124,7 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
 #define TOTAL_FRAMES_TUBARAO       2
 #define VEL_ANIMACAO_TUBARAO       8
 #define TUBARAO_MAX                5
-#define VEL_TUBARAO                1
+int VEL_TUBARAO;
 
 /*
     Enzo Emanoel: Sprites iniciais do tubarão
@@ -568,12 +568,12 @@ void spawnarPeixes() {
             if (ladoNascerFinal)
             {
                 peixe[p].x = 0 - LARGURA_PEIXE;
-                peixe[p].dx = 1;
+                peixe[p].dx = VEL_PEIXE;
             }
             else
             {
                 peixe[p].x = TELA_LARGURA + LARGURA_PEIXE;
-                peixe[p].dx = -1;
+                peixe[p].dx = -VEL_PEIXE;
             }
             
             peixesNascidos++;
@@ -796,10 +796,10 @@ int checkColisaoEntidades(PEIXES entidade1, PEIXES entidade2) {
 }
 
 void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entidade2[], int entidade2_MAX) {
-    for (int e1; e1 < entidade1_MAX; e1++) {
+    for (int e1 = 0; e1 < entidade1_MAX; e1++) {
         if (!entidade1[e1].vivo) { continue; }
 
-        for (int e2; e2 < entidade2_MAX; e2++) {
+        for (int e2 = 0; e2 < entidade2_MAX; e2++) {
             if (!entidade2[e2].vivo) { continue; }
 
             if (checkColisaoEntidades(entidade1[e1], entidade2[e2])) {
@@ -816,11 +816,19 @@ void colisoes()
     colisaoPlayerEntidade(tubarao, TUBARAO_MAX);
     colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE);
     colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO);
-    checkEncontrosEntidades(peixe, PEIXE_MAX, tubarao, TUBARAO_MAX);
-
+    checkEncontrosEntidades(tubarao, TUBARAO_MAX, peixe, PEIXE_MAX);
 }
 
 // ---------------------------------- Sistema de dificuldade ----------------------------------
+
+// TODO: Adicionar morte por vida
+// TODO: Adicionar morte por oxigenio
+
+void aumentarVelEntidades() {
+    VEL_PEIXE = 1 + (player.score / 2000);
+    VEL_TUBARAO = 1 + (player.score / 2000);
+}
+
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
 
@@ -878,7 +886,7 @@ void updatePlayer()
         player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
     }
 
-
+    aumentarVelEntidades();
 
 }
 
