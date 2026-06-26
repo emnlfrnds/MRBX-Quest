@@ -110,6 +110,40 @@ typedef struct
 
 PLAYER player;
 
+//Enzo Capitani: Criação da pessoa afogada
+#define ALTURA_PESSOA              3
+#define LARGURA_PESSOA             3
+#define VELOCIDADE_PESSOA          2
+#define TOTAL_FRAMES_PESSOA        3
+#define VELOCIDADE_ANIMACAO_PESSOA 4 // as velocidades de animação são inversamente proporcionais ao seus defines
+#define MAX_PESSOAS                4
+
+const char *PESSOA_SPRITE[TOTAL_FRAMES_PESSOA][ALTURA_PESSOA] = {
+    {
+        " O ",
+        "/|\\",
+        "/ \\"
+    },
+    {
+        "_O_",
+        " | ",
+        "/ \\"
+    },
+    {
+        "\\O/",
+         " | ",
+         "/ \\"
+    },
+};
+
+typedef struct {
+    int x, y;
+    int vivo;
+    int lado;
+} PESSOAS;
+
+PESSOAS pessoas[MAX_PESSOAS];
+
 //Enzo Emanoel: Criação do peixe
 
 #define ALTURA_PEIXE               3
@@ -502,6 +536,35 @@ void desenhaTiro()
     }
 }
 
+void desenhaPessoa(){
+     int frameAtualPessoa = (relogioGlobal / VELOCIDADE_ANIMACAO_PESSOA) % TOTAL_FRAMES_PESSOA;
+
+    for(int p = 0; p < MAX_PESSOAS; p++){
+        if(pessoas[p].vivo){
+            for(int i = 0; i < ALTURA_PESSOA; i++){
+                for(int j = 0; j < LARGURA_PESSOA; j++){
+
+                    int posX = pessoas[p].x + j;
+                    int posY = pessoas[p].y + i;
+
+                    int indice = posY * TELA_LARGURA + posX;
+
+                     if(!(posX < 0 || posX > TELA_LARGURA || posY < 0 || posY > TELA_ALTURA)){
+                        char caractere = PESSOA_SPRITE[frameAtualPessoa][i][j];
+
+                        if(!caractere != ' ')
+                        {
+                            consoleBuffer[indice].Char.AsciiChar = caractere;
+                            consoleBuffer[indice].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
+                        }
+                     }
+
+                }
+            }
+        }
+    }
+}
+
 void desenhaMorto()
 {
     for(int m = 0; m < MORTO_MAX; m++){
@@ -555,6 +618,7 @@ void desenhaTela()
     desenhaScore();
     desenhaBarraOxigenio();
     desenhaPlayer();
+    desenhaPessoa();
     desenharEntidades(peixe, PEIXE_MAX);
     desenharEntidades(tubarao, TUBARAO_MAX);
     desenhaTiro();
@@ -669,6 +733,30 @@ void spawnarPeixes() {
     }
 }
 
+void spawnarPessoa()
+{
+    if(rand() % 20 != 0){return;}
+
+    int indice = rand() % MAX_PESSOAS;
+
+    if(pessoas[indice].vivo)
+        return;
+    
+    pessoas[indice].vivo = 1;
+
+
+    if(rand() % 2 == 0){
+        pessoas[indice].lado = 0 - LARGURA_PESSOA;
+        pessoas[indice].x = 0;
+    }else{
+        pessoas[indice].lado = 1;
+        pessoas[indice].x = TELA_LARGURA + LARGURA_PESSOA;
+    }
+
+    pessoas[indice].y = (rand() % (22 - 8)) + 8;
+
+}
+
 void spawnarTubarao() {
     
     // Chance
@@ -765,6 +853,8 @@ void gerenciarSpawns() {
     } else {
         spawnarPeixes(); 
     }
+
+    spawnarPessoa();
 }
 
 void matarEntidade(int posX, int posY)
@@ -1002,6 +1092,22 @@ void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, i
     }
 }
 
+void updatePessoa()
+{
+    for(int p = 0; p < MAX_PESSOAS; p++){
+        if(pessoas[p].vivo && pessoas[p].lado == 1){
+            pessoas[p].x--;
+        }else if(pessoas[p].vivo){
+            pessoas[p].x++;
+        }
+
+        if(pessoas[p].x > TELA_LARGURA + LARGURA_PESSOA || pessoas[p].x < -LARGURA_PESSOA){
+            pessoas[p].vivo = 0;
+        }
+
+    }
+}
+
 void updateMorto()
 {
     for(int m = 0; m < MORTO_MAX; m++)
@@ -1030,6 +1136,7 @@ void update()
         gerenciarSpawns();
         animacaoEntidades();
         updatePlayer();
+        updatePessoa();
         updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, VEL_PEIXE);
         updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, VEL_TUBARAO);
         updateTiro();
@@ -1075,6 +1182,14 @@ void iniciarTiros()
     }
 }
 
+void iniciarPessoas(){
+    for(int p = 0; p < MAX_PESSOAS; p++){
+        pessoas[p].vivo = 0;
+        pessoas[p].x = 40;
+        pessoas[p].y = 15;
+    }
+}
+
 void iniciarMorto()
 {
     for(int i = 0; i < MORTO_MAX; i++)
@@ -1090,6 +1205,7 @@ void iniciar()
     iniciarEntidade(tubarao, TUBARAO_MAX);
     iniciarTiros();
     iniciarMorto();
+    iniciarPessoas();
 }
 
 //  ---------------------------------- RESET ----------------------------------
