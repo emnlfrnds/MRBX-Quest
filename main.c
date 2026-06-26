@@ -10,6 +10,44 @@
 #define DELAY        90
 #define ALTURA_CEU   4
 
+#define TELA_INICIAL  0
+#define TELA_JOGO     1
+#define TELA_GAMEOVER 2
+
+//Constantes da tela inicial
+
+#define LARGURA_LOGO 56
+#define ALTURA_LOGO 5
+#define LOGO_X 35
+#define LOGO_Y 8
+
+const char *MRBX_QUESTLOGO[ALTURA_LOGO] = {
+    " __  __ ____  ______  __   ___  _   _ _____ ____ _____ ",
+    "|  \\/  |  _ \\| __ ) \\/ /  / _ \\| | | | ____/ ___|_   _|",
+    "| |\\/| | |_) |  _ \\\\  /  | | | | | | |  _| \\___ \\ | |  ",
+    "| |  | |  _ <| |_) /  \\  | |_| | |_| | |___ ___) || |  ",
+    "|_|  |_|_| \\_\\____/_/\\_\\  \\__\\_\\\\___/|_____|____/ |_|  "};
+
+//Constantes da tela Game Over: 
+
+#define ALTURA_GAMEOVER 8
+#define LARGURA_GAMEOVER 100
+#define GAME_OVER_X 13
+#define GAME_OVER_Y 3
+
+const wchar_t *GAMEOVER[] = {
+
+    L" .d8888b.         d8888 888b     d888 8888888888      .d88888b.  888     888 8888888888 8888888b. ",
+    L"d88P  Y88b       d88888 8888b   d8888 888            d88P   Y88b 888     888 888        888   Y88b",
+    L"888    888      d88P888 88888b.d88888 888            888     888 888     888 888        888    888",
+    L"888            d88P 888 888Y88888P888 8888888        888     888 Y88b   d88P 8888888    888   d88P",
+    L"888  88888    d88P  888 888 Y888P 888 888            888     888  Y88b d88P  888        8888888P  ",
+    L"888    888   d88P   888 888  Y8P  888 888            888     888   Y88o88P   888        888 T88b  ",
+    L"Y88b  d88P  d8888888888 888       888 888            Y88b. .d88P    Y888P    888        888  T88b ",
+    L" Y88888P8  d88P     888 888       888 8888888888      Y8888888P      Y8P     8888888888 888   T88b",
+
+};
+
 // Array com 6 cores vibrantes
 const WORD PALETA_DE_CORES[] = {
     FOREGROUND_GREEN | FOREGROUND_INTENSITY,                                    // Verde
@@ -152,7 +190,7 @@ const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     }
 };
 
-// Struct das peixes
+// Struct dos peixes
 typedef struct {
     int x, y;
     int dx, dy;
@@ -207,6 +245,15 @@ COORD bufferCoord = {0, 0};
 SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 
 int relogioGlobal = 0;
+int telaAtual = TELA_INICIAL;
+
+//------------------------------- Protótipos -----------------------------------------------
+
+void mudarTela(int);
+void limparBufferTeclado();
+
+void resetEntidades();
+void reset();
 
 //------------------------------- Métodos de sons -----------------------------------------------
 
@@ -239,6 +286,76 @@ void animacaoEntidades() {
 }
 
 // ---------------------------------- Métodos de desenhos ----------------------------------
+
+// -------------------- Parte da tela inicial --------------------
+
+void desenhaTelaInicial()
+{
+
+    for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; ++i)
+    {
+        consoleBuffer[i].Char.AsciiChar = ' ';
+        consoleBuffer[i].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;
+    }
+
+    for (int i = 0; i < ALTURA_LOGO; ++i)
+    {
+        for (int j = 0; j < LARGURA_LOGO; ++j)
+        {
+            int indice = (LOGO_Y + i) * TELA_LARGURA + (LOGO_X + j);
+            consoleBuffer[indice].Char.AsciiChar = MRBX_QUESTLOGO[i][j];
+            consoleBuffer[indice].Attributes = FOREGROUND_BLUE;
+        }
+    }
+
+    char textoIniciar[35];
+    sprintf(textoIniciar, "PRESSIONE CONTROL PARA INICIAR");
+
+    int inicio = (ALTURA_LOGO + LOGO_Y + 1) * (TELA_LARGURA) + 48;
+    for (int i = 0; textoIniciar[i] != '\0'; i++)
+    {
+        consoleBuffer[inicio + i].Char.AsciiChar = textoIniciar[i];
+        consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
+    }
+
+    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+}
+
+// -------------------- Parte da tela Game Over --------------------
+
+void desenhaTelaGameOver()
+{
+
+    for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; ++i)
+    {
+        consoleBuffer[i].Char.AsciiChar = ' ';
+        consoleBuffer[i].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;
+    }
+
+    for (int i = 0; i < ALTURA_GAMEOVER; ++i)
+    {
+        for (int j = 0; j < LARGURA_GAMEOVER; ++j)
+        {
+            int indice = (GAME_OVER_Y + i) * TELA_LARGURA + (GAME_OVER_X + j);
+            consoleBuffer[indice].Char.AsciiChar = GAMEOVER[i][j];
+            consoleBuffer[indice].Attributes = FOREGROUND_RED;
+        }
+    }
+
+    char textoIniciar[35];
+    sprintf(textoIniciar, "PRESSIONE CONTROL PARA VOLTAR AO MENU");
+
+    int inicio = (ALTURA_GAMEOVER + GAME_OVER_Y + 1) * (TELA_LARGURA) + 35;
+    for (int i = 0; textoIniciar[i] != '\0'; i++)
+    {
+        consoleBuffer[inicio + i].Char.AsciiChar = textoIniciar[i];
+        consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
+    }
+
+    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+}
+
+// -------------------- Parte da tela inicial --------------------
 
 void desenhaScore()
 {
@@ -416,10 +533,17 @@ void desenhaMapa()
     for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; i++)
     {   
         consoleBuffer[i].Char.AsciiChar = ' ';
+
         if(i < TELA_LARGURA * ALTURA_CEU){
             consoleBuffer[i].Attributes = BACKGROUND_BLUE | BACKGROUND_INTENSITY;
             continue;
         }
+
+        if (i >= TELA_LARGURA * (TELA_ALTURA - 2)) {
+            consoleBuffer[i].Attributes = BACKGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_INTENSITY;
+            continue;
+        }
+
         consoleBuffer[i].Attributes = BACKGROUND_BLUE;
     }
 }
@@ -660,6 +784,13 @@ void matarEntidade(int posX, int posY)
 
 // ---------------------------------- Métodos de ações ----------------------------------
 
+void acaoTela(char teclaMudar, int tela)
+{
+    if(GetAsyncKeyState(VK_CONTROL)){
+        mudarTela(tela);
+    }
+}
+
 void acoesPlayer()
 {
 
@@ -709,8 +840,7 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
               player.y + ALTURA_PLAYER > entidade[e].y &&
                player.y < entidade[e].y + ALTURA_PEIXE && entidade[e].vivo == 1)
         {
-            entidade[e].vivo = 0;
-            entidade[e].x = 0;
+            resetEntidades();
             player.vida--;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -889,16 +1019,32 @@ void updateMorto()
 
 void update()
 {   
-    gerenciarSpawns();
-    animacaoEntidades();
-    updatePlayer();
-    updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, VEL_PEIXE);
-    updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, VEL_TUBARAO);
-    updateTiro();
-    updateMorto();
-    colisoes();
-    desenhaTela();
+    if(telaAtual == TELA_INICIAL){
+        desenhaTelaInicial();
+        acaoTela('p', TELA_JOGO);
+        Sleep(400);
+        limparBufferTeclado();
+    }
 
+    if(telaAtual == TELA_JOGO){
+        gerenciarSpawns();
+        animacaoEntidades();
+        updatePlayer();
+        updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, VEL_PEIXE);
+        updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, VEL_TUBARAO);
+        updateTiro();
+        updateMorto();
+        colisoes();
+        desenhaTela();
+    }
+
+    if(telaAtual == TELA_GAMEOVER){
+        desenhaTelaGameOver();
+        acaoTela('p', TELA_INICIAL);
+        Sleep(400);
+        limparBufferTeclado();
+    }
+    
     relogioGlobal++;
 }
 
@@ -946,9 +1092,44 @@ void iniciar()
     iniciarMorto();
 }
 
+//  ---------------------------------- RESET ----------------------------------
+
+void resetEntidades()
+{   
+    //PEIXES peixe[PEIXE_MAX], tubarao[TUBARAO_MAX];
+
+    for(int i = 0; i < TUBARAO_MAX; i++){
+        tubarao[i].vivo = 0;
+        tubarao[i].x = 0;
+    }
+
+    for(int i = 0; i < PEIXE_MAX; i++){
+        peixe[i].vivo = 0;
+        peixe[i].x = 0;
+    }
+
+}
+
+void reset()
+{   
+    resetEntidades();
+    iniciarPlayer();
+    iniciarTiros();
+    iniciarMorto();
+}
+
+//  ---------------------------------- UTIL ----------------------------------
+
+void limparBufferTeclado(){ if(kbhit()) getch(); }
+
+void mudarTela(int tela)
+{
+    telaAtual = tela;
+    reset();
+}
+
 // ---------------------------------- Main ----------------------------------
 
-//acho que é o main
 int main(int argc, char* argv[]){
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
