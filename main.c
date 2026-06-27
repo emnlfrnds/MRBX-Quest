@@ -3,6 +3,8 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <mmsystem.h>
+#pragma comment (lib, "winmm.lib")
 
 //Constantes da tela
 #define TELA_LARGURA 125
@@ -207,8 +209,20 @@ COORD bufferCoord = {0, 0};
 SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 
 int relogioGlobal = 0;
+//-------------------------------Inicialização de sons-------------------------------------------
+void iniciarSons(){
+    mciSendString("open s ons/Alerta1.wav type waveaudio alias Alerta", NULL, 0, NULL);
+    mciSendString("open sons/dano.wav type waveaudio alias Dano", NULL, 0, NULL);
+    mciSendString("open sons/tiro.wav type waveaudio alias Tiro", NULL, 0, NULL);
+    mciSendString("open sons/respirando1.wav type waveaudio alias Respirando", NULL, 0, NULL);
+    mciSendString("open sons/salvando.wav type waveaudio alias Salvando", NULL, 0, NULL);
+    mciSendString("open sons/resgate.wav type waveaudio alias Resgatando", NULL, 0, NULL);
+    mciSendString("open sons/peixehumanomorto.wav type waveaudio alias MorteEntidade", NULL, 0, NULL);
+}
+
 
 //------------------------------- Métodos de sons -----------------------------------------------
+
 
 // ---------------------------------- Animações das Entidades ------------------------------
 
@@ -691,6 +705,8 @@ void acaoTiro()
                     tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
                     tiros[i].y = player.y + 1;
                     tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
+                    mciSendString("play Tiro wait", NULL, 0, NULL);
+                    mciSendString("close Tiro", NULL, 0, NULL);
 
                     break;
                 }
@@ -712,6 +728,8 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
             entidade[e].vivo = 0;
             entidade[e].x = 0;
             player.vida--;
+            mciSendString("play Dano wait", NULL, 0, NULL);
+            mciSendString("close Dano", NULL, 0, NULL);
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 
@@ -735,6 +753,9 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                         entidade[e].vida--;
                         tiros[t].ativo = 0;
                         player.score += 100;
+                        mciSendString("play MorteEntidade Volume 500", NULL, 0, NULL);
+                        mciSendString("close MorteEntidade", NULL, 0, NULL);
+
 
                         break;
                     }
@@ -934,10 +955,10 @@ void iniciarMorto()
     for(int i = 0; i < MORTO_MAX; i++)
     {
         morto[i].ativo = 0;
-    }
+     }
 }
 
-void iniciar()
+ void iniciar()
 {   
     iniciarPlayer();
     iniciarEntidade(peixe, PEIXE_MAX);
@@ -948,11 +969,10 @@ void iniciar()
 
 // ---------------------------------- Main ----------------------------------
 
-//acho que é o main
+//acho que é o  main
 int main(int argc, char* argv[]){
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    srand((unsigned)time(NULL));
+    srand((unsigned)time(NULL)); 
 
     iniciar();
 
@@ -960,7 +980,7 @@ int main(int argc, char* argv[]){
     {   
         update();
         Sleep(DELAY);
-    }
+      }
 
     return 0;
 }
