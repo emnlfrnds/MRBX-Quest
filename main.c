@@ -7,7 +7,7 @@
 //Constantes da tela
 #define TELA_LARGURA 125
 #define TELA_ALTURA  25
-#define DELAY        90
+#define DELAY       30
 #define ALTURA_CEU   4
 
 #define TELA_INICIAL  0
@@ -63,9 +63,9 @@ const WORD PALETA_DE_CORES[] = {
 #define VELOCIDADE_X_PLAYER        2
 #define VELOCIDADE_Y_PLAYER        1
 #define TOTAL_FRAMES_JOGADOR       3
-#define VELOCIDADE_ANIMACAO_PLAYER 1 // as velocidades de animação são inversamente proporcionais ao seus defines
+#define VELOCIDADE_ANIMACAO_PLAYER 5 // as velocidades de animação são inversamente proporcionais ao seus defines
 #define NIVEL_MAX_OXIGENIO         1000
-
+#define TICK_PLAYER                2
 /*
     Enzo Capitani: Sprites iniciais do submarino
 */
@@ -117,9 +117,9 @@ PLAYER player;
 #define VEL_X_PEIXE                2
 #define VEL_Y_PEIXE                1
 #define TOTAL_FRAMES_PEIXE         2
-#define VEL_ANIMACAO_PEIXE         8
+#define VEL_ANIMACAO_PEIXE         15
 #define PEIXE_MAX                  15
-int VEL_PEIXE;
+int TICK_PEIXE;
 
 /*
     Enzo Emanoel: Sprites iniciais do peixe
@@ -157,9 +157,9 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
 #define VEL_X_TUBARAO              2
 #define VEL_Y_TUBARAO              1
 #define TOTAL_FRAMES_TUBARAO       2
-#define VEL_ANIMACAO_TUBARAO       8
+#define VEL_ANIMACAO_TUBARAO       15
 #define TUBARAO_MAX                5
-int VEL_TUBARAO;
+int TICK_TUBARAO;
 
 /*
     Enzo Emanoel: Sprites iniciais do tubarão
@@ -385,7 +385,7 @@ void desenhaVida()
 
 void desenhaBarraOxigenio()
 {
-    int frameAtual = relogioGlobal % 3;
+    int frameAtual = relogioGlobal % 5;
 
     WORD corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
 
@@ -654,12 +654,12 @@ void spawnarPeixes() {
             if (ladoNascerFinal)
             {
                 peixe[p].x = 0 - LARGURA_PEIXE;
-                peixe[p].dx = VEL_PEIXE;
+                peixe[p].dx = 2;
             }
             else
             {
                 peixe[p].x = TELA_LARGURA + LARGURA_PEIXE;
-                peixe[p].dx = -VEL_PEIXE;
+                peixe[p].dx = -2;
             }
             
             peixesNascidos++;
@@ -725,7 +725,7 @@ void spawnarTubarao() {
         if (!tubarao[t].vivo)
         {
             tubarao[t].vivo = 1;
-            tubarao[t].vida = 3;
+            tubarao[t].vida = 4;
             tubarao[t].y = alturaBaseFinal;
 
             tubarao[t].altura = ALTURA_TUBARAO;
@@ -744,12 +744,12 @@ void spawnarTubarao() {
             if (ladoNascerFinal)
             {
                 tubarao[t].x = 0 - LARGURA_TUBARAO;
-                tubarao[t].dx = 1;
+                tubarao[t].dx = 3;
             }
             else
             {
                 tubarao[t].x = TELA_LARGURA + LARGURA_TUBARAO;
-                tubarao[t].dx = -1;
+                tubarao[t].dx = -3;
             }
 
             break;
@@ -793,21 +793,21 @@ void acaoTela(char teclaMudar, int tela)
 
 void acoesPlayer()
 {
+    if (relogioGlobal % TICK_PLAYER == 0) {
+        if (GetAsyncKeyState(VK_RIGHT))
+        {
+            player.x += VELOCIDADE_X_PLAYER;
+            PLAYER_SPRITE = PLAYER_DIREITA;
+        }
+        if (GetAsyncKeyState(VK_LEFT))
+        {
+            player.x -= VELOCIDADE_X_PLAYER;
+            PLAYER_SPRITE = PLAYER_ESQUERDA;
+        }
 
-    if (GetAsyncKeyState(VK_RIGHT))
-    {
-        player.x += VELOCIDADE_X_PLAYER;
-        PLAYER_SPRITE = PLAYER_DIREITA;
+        if (GetAsyncKeyState(VK_DOWN)) player.y += VELOCIDADE_Y_PLAYER;
+        if (GetAsyncKeyState(VK_UP)) player.y -= VELOCIDADE_Y_PLAYER;
     }
-    if (GetAsyncKeyState(VK_LEFT))
-    {
-        player.x -= VELOCIDADE_X_PLAYER;
-        PLAYER_SPRITE = PLAYER_ESQUERDA;
-    }
-    if (GetAsyncKeyState(VK_DOWN))
-        player.y += VELOCIDADE_Y_PLAYER;
-    if (GetAsyncKeyState(VK_UP))
-        player.y -= VELOCIDADE_Y_PLAYER;
 }
 
 void acaoTiro()
@@ -864,7 +864,7 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                     {
                         entidade[e].vida--;
                         tiros[t].ativo = 0;
-                        player.score += 100;
+                        player.score += 50;
 
                         break;
                     }
@@ -914,13 +914,30 @@ void colisoes()
 // TODO: Adicionar morte por vida
 // TODO: Adicionar morte por oxigenio
 
-// TODO: Mudar as velocidades para float (E. Emanoel)
 void aumentarVelEntidades() {
-    VEL_PEIXE = 1; // + (player.score / 2000);
-    VEL_TUBARAO = 1; // + (player.score / 2000);
+    int dificuldade = player.score / 5000;
+
+    if (dificuldade == 0) {
+        TICK_PEIXE = 5;
+        TICK_TUBARAO = 5;
+    }
+    else if (dificuldade == 1) {
+        TICK_PEIXE = 4;
+        TICK_TUBARAO = 4;
+    }
+    else if (dificuldade == 3) {
+        TICK_PEIXE = 3;
+        TICK_TUBARAO = 3;
+    }
+    else if (dificuldade == 4) {
+        TICK_PEIXE = 2;
+        TICK_TUBARAO = 2;
+    }
+    else if (dificuldade >= 6) {
+        TICK_PEIXE = 1;
+        TICK_TUBARAO = 1;
+    }
 }
-
-
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
 
@@ -957,14 +974,12 @@ void updatePlayer()
         
     }else{
         player.respirando = 0;
-        player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
+        player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.002;
     }
 
-    if(relogioGlobal % 5 == 0){
+    if(relogioGlobal % 10 == 0){
         player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
     }
-
-    aumentarVelEntidades();
 
 }
 
@@ -984,7 +999,7 @@ void updateTiro()
     }
 }
 
-void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, int vel_entidade) {
+void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, int tick_entidade) {
     for (int e = 0; e < entidade_MAX; e++) {
         if (entidade[e].vivo && entidade[e].vida <= 0)
         {
@@ -993,7 +1008,7 @@ void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, i
         }
         if (entidade[e].vivo) {
 
-            entidade[e].x += entidade[e].dx * vel_entidade;
+            if (relogioGlobal % tick_entidade == 0) entidade[e].x += entidade[e].dx;
 
             if (entidade[e].x <= 0 - largura_entidade || entidade[e].x > TELA_LARGURA + largura_entidade) {
                 entidade[e].vivo = 0;
@@ -1030,8 +1045,9 @@ void update()
         gerenciarSpawns();
         animacaoEntidades();
         updatePlayer();
-        updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, VEL_PEIXE);
-        updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, VEL_TUBARAO);
+        aumentarVelEntidades();
+        updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, TICK_PEIXE);
+        updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, TICK_TUBARAO);
         updateTiro();
         updateMorto();
         colisoes();
