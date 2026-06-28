@@ -1,12 +1,142 @@
 #include <stdio.h>
-#include <windows.h>
-#include <conio.h>
 #include <stdlib.h>
 #include <time.h>
 
+#include "portabilidade.h"
+
+//Coisas do buffer
+
+/* Instanciação das variáveis globais compartilhadas */
+
+CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
+
+#ifdef _WIN32
+    HANDLE hConsole;
+    COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
+    COORD bufferCoord = {0, 0};
+    SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA - 1, TELA_ALTURA - 1};
+    
+    void preparar_terminal_win(void) {
+        hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+        
+        DWORD modo = 0;
+        
+        GetConsoleMode(hConsole, &modo);
+        SetConsoleMode(hConsole, modo | 0x0004); /* Habilita processamento VT ANSI */
+        printf(" [2J [?25l"); /* Limpa terminal e esconde cursor */
+        fflush(stdout);
+    }
+#else
+    static struct termios termo_original;
+
+    void preparar_terminal_unix(void) {
+        
+        tcgetattr(STDIN_FILENO, &termo_original);
+        
+        struct termios cru = termo_original;
+        
+        cru.c_lflag &= ~(ICANON | ECHO); /* Desliga buffer de linha e eco de digitação */
+        cru.c_cc[VMIN] = 0; /* Leitura não-bloqueante ativa */
+        cru.c_cc[VTIME] = 0;
+        
+        tcsetattr(STDIN_FILENO, TCSANOW, &cru);
+        printf(" [2J [?25l"); /* Limpa a tela e oculta cursor */
+        fflush(stdout);
+        atexit(restaurar_terminal_unix);
+    }
+    
+    void restaurar_terminal_unix(void) {
+        tcsetattr(STDIN_FILENO, TCSANOW, &termo_original);
+        printf(" [?25h [0m"); /* Mostra cursor e restaura padrões */
+        fflush(stdout);
+    }
+    
+    int ler_input(void) {
+        
+        unsigned char c;
+        
+        if (read(STDIN_FILENO, &c, 1) == 1) {
+            if (c == 27) { /* Captura de sequências de escape (ex: setas direcionais) */
+            
+                unsigned char seq[2];
+
+                if (read(STDIN_FILENO, &seq[0], 1) == 1 && read(STDIN_FILENO, &seq[1], 1) == 1) {
+                    if (seq[0] == '[') {
+                        switch (seq[1]) {
+                            case 'A': return 'w'; /* Mapeia Seta Cima para 'w' */
+                            case 'B': return 's'; /* Mapeia Seta Baixo para 's' */
+                            case 'C': return 'd'; /* Mapeia Seta Direita para 'd' */
+                            case 'D': return 'a'; /* Mapeia Seta Esquerda para 'a' */
+                        }
+                    }
+                }
+            }
+            return c;
+        }
+        return -1;
+    }
+
+    static void traduzir_cor_janela(unsigned short attr, int *fg, int *bg, int *bold) {
+        int r = (attr & FOREGROUND_RED) ? 1 : 0;
+        int g = (attr & FOREGROUND_GREEN) ? 1 : 0;
+        int b = (attr & FOREGROUND_BLUE) ? 1 : 0;
+        
+        *bold = (attr & FOREGROUND_INTENSITY) ? 1 : 0;
+
+        if (r && g && b) *fg = 37;
+        else if (r && g) *fg = 33;
+        else if (r && b) *fg = 35;
+        else if (g && b) *fg = 36;
+        else if (r) *fg = 31;
+        else if (g) *fg = 32;
+        else if (b) *fg = 34;
+        else *fg = 30;
+        
+        int br = (attr & BACKGROUND_RED) ? 1 : 0;
+        int bg_g = (attr & BACKGROUND_GREEN) ? 1 : 0;
+        int bb = (attr & BACKGROUND_BLUE) ? 1 : 0;
+    
+        if (br && bg_g && bb) *bg = 47;
+        else if (br && bg_g) *bg = 43;
+        else if (br && bb) *bg = 45;
+        else if (bg_g && bb) *bg = 46;
+        else if (br) *bg = 41;
+        else if (bg_g) *bg = 42;
+        else if (bb) *bg = 44;
+        else *bg = 40;
+    }
+
+    void renderizar_terminal_unix(void) {
+        
+        printf(" [H"); /* Move cursor de volta ao topo (0,0) sem limpar a tela */
+        
+        int ult_fg = -1, ult_bg = -1, ult_bold = -1;
+        
+        for (int y = 0; y < TELA_ALTURA; y++) {
+        
+            for (int x = 0; x < TELA_LARGURA; x++) {
+
+                CHAR_INFO pixel = consoleBuffer[y * TELA_LARGURA + x];
+        
+                int fg, bg, bold;
+
+                traduzir_cor_janela(pixel.Attributes, &fg, &bg, &bold);
+        
+                if (fg != ult_fg || bg != ult_bg || bold != ult_bold) {        
+                    
+                    printf(" [%d;%d;%dm", bold ? 1 : 0, fg, bg);
+
+                    ult_fg = fg; ult_bg = bg; ult_bold = bold;
+                }
+                putchar(pixel.Char.AsciiChar ? pixel.Char.AsciiChar : ' ');
+            }
+            putchar(' ');
+        }
+        fflush(stdout);    
+    }
+#endif
+
 //Constantes da tela
-#define TELA_LARGURA 125
-#define TELA_ALTURA  25
 #define DELAY       30
 #define ALTURA_CEU   4
 
@@ -237,13 +367,6 @@ typedef struct {
 
 MORTO morto[MORTO_MAX];
 
-//Coisas do buffer
-HANDLE hConsole;
-CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
-COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
-COORD bufferCoord = {0, 0};
-SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
-
 int relogioGlobal = 0;
 int telaAtual = TELA_INICIAL;
 
@@ -308,8 +431,8 @@ void desenhaTelaInicial()
         }
     }
 
-    char textoIniciar[35];
-    sprintf(textoIniciar, "PRESSIONE CONTROL PARA INICIAR");
+    char textoIniciar[100];
+    snprintf(textoIniciar, sizeof(textoIniciar), "PRESSIONE CONTROL PARA INICIAR");
 
     int inicio = (ALTURA_LOGO + LOGO_Y + 1) * (TELA_LARGURA) + 48;
     for (int i = 0; textoIniciar[i] != '\0'; i++)
@@ -318,7 +441,7 @@ void desenhaTelaInicial()
         consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
     }
 
-    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    renderizar_jogo();
 }
 
 // -------------------- Parte da tela Game Over --------------------
@@ -342,8 +465,8 @@ void desenhaTelaGameOver()
         }
     }
 
-    char textoIniciar[35];
-    sprintf(textoIniciar, "PRESSIONE CONTROL PARA VOLTAR AO MENU");
+    char textoIniciar[100];
+    snprintf(textoIniciar, sizeof(textoIniciar), "PRESSIONE CONTROL PARA VOLTAR AO MENU");
 
     int inicio = (ALTURA_GAMEOVER + GAME_OVER_Y + 1) * (TELA_LARGURA) + 35;
     for (int i = 0; textoIniciar[i] != '\0'; i++)
@@ -352,15 +475,15 @@ void desenhaTelaGameOver()
         consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
     }
 
-    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    renderizar_jogo();
 }
 
 // -------------------- Parte da tela inicial --------------------
 
 void desenhaScore()
 {
-    char textoScore[30];
-    sprintf(textoScore, "Score: %d", player.score);
+    char textoScore[100];
+    snprintf(textoScore, sizeof(textoScore), "Score: %d", player.score);
 
     int inicio = TELA_LARGURA + 5;
     for (int i = 0; textoScore[i] != '\0'; i++)
@@ -372,8 +495,8 @@ void desenhaScore()
 
 void desenhaVida()
 {
-    char textoVida[15];
-    sprintf(textoVida, "Vida: %d", player.vida);
+    char textoVida[30];
+    snprintf(textoVida, sizeof(textoVida), "Vida: %d", player.vida);
 
     int inicio = TELA_LARGURA * 2 - 15;
     for (int i = 0; textoVida[i] != '\0'; i++)
@@ -409,8 +532,8 @@ void desenhaBarraOxigenio()
     }
     barras[21] = '\0';
 
-    char barraOxigenio[51];
-    sprintf(barraOxigenio, "OXIGENIO: [%s]", barras);
+    char barraOxigenio[60];
+    snprintf(barraOxigenio, sizeof(barraOxigenio), "OXIGENIO: [%s]", barras);
 
     int inicio = TELA_LARGURA + 40;
     for (int i = 0; barraOxigenio[i] != '\0'; i++)
@@ -559,7 +682,7 @@ void desenhaTela()
     desenharEntidades(tubarao, TUBARAO_MAX);
     desenhaTiro();
     desenhaMorto();
-    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    renderizar_jogo();
 }
 
 // ---------------------------------- Sistemas Autônomos --------------------------------
@@ -786,47 +909,96 @@ void matarEntidade(int posX, int posY)
 
 void acaoTela(char teclaMudar, int tela)
 {
-    if(GetAsyncKeyState(VK_CONTROL)){
+#ifdef _WIN32
+    if (GetAsyncKeyState(VK_RETURN) & 0x8000 || GetAsyncKeyState(VK_CONTROL) & 0x8000) {
         mudarTela(tela);
     }
+#else
+    int tecla = ler_input();
+
+    if (tecla == '\n' || tecla == 'c') {
+        // Ação Tela / Pause
+        mudarTela(tela);
+    }
+#endif
 }
 
 void acoesPlayer()
 {
+#ifdef _WIN32
+    /* --- MOTOR DE INPUT DO WINDOWS (Liso, aceita múltiplas teclas) --- */
     if (relogioGlobal % TICK_PLAYER == 0) {
-        if (GetAsyncKeyState(VK_RIGHT))
+        if (GetAsyncKeyState('D') & 0x8000)
         {
             player.x += VELOCIDADE_X_PLAYER;
             PLAYER_SPRITE = PLAYER_DIREITA;
         }
-        if (GetAsyncKeyState(VK_LEFT))
+        
+        if (GetAsyncKeyState('A') & 0x8000)
         {
             player.x -= VELOCIDADE_X_PLAYER;
             PLAYER_SPRITE = PLAYER_ESQUERDA;
         }
-
-        if (GetAsyncKeyState(VK_DOWN)) player.y += VELOCIDADE_Y_PLAYER;
-        if (GetAsyncKeyState(VK_UP)) player.y -= VELOCIDADE_Y_PLAYER;
+        if (GetAsyncKeyState('S') & 0x8000) player.y += VELOCIDADE_Y_PLAYER;
+        if (GetAsyncKeyState('W') & 0x8000) player.y -= VELOCIDADE_Y_PLAYER;
     }
+#else
+    /* --- MOTOR DE INPUT DO LINUX (Uma tecla por vez, via terminal) --- */
+    int tecla = ler_input();
+    
+    if (tecla == 'd')
+    {
+        player.x += VELOCIDADE_X_PLAYER;
+        PLAYER_SPRITE = PLAYER_DIREITA;
+    }
+    if (tecla == 'a')
+    {
+        player.x -= VELOCIDADE_X_PLAYER;
+        PLAYER_SPRITE = PLAYER_ESQUERDA;
+    }
+    if (tecla == 's') player.y += VELOCIDADE_Y_PLAYER;
+    if (tecla == 'w') player.y -= VELOCIDADE_Y_PLAYER;
+#endif
 }
 
 void acaoTiro()
 {
-    if (GetAsyncKeyState(VK_SPACE))
+#ifdef _WIN32
+
+    if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+    {
+        for(int i = 0; i < MAX_TIRO; i++)
+        {
+            if(!tiros[i].ativo)
+            {
+                tiros[i].ativo = 1;
+                tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
+                tiros[i].y = player.y + 1;
+                tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
+                break;
+            }
+        }
+    }
+
+#else
+
+    int tecla = ler_input();
+
+    if (tecla == ' ')
     {   
         for(int i = 0; i < MAX_TIRO; i++)
+        {
+            if(!tiros[i].ativo)
             {
-                if(!tiros[i].ativo)
-                {
-                    tiros[i].ativo = 1;
-                    tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
-                    tiros[i].y = player.y + 1;
-                    tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
-
-                    break;
-                }
+                tiros[i].ativo = 1;
+                tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
+                tiros[i].y = player.y + 1;
+                tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
+                break;
             }
+        }
     }
+#endif
 }
 
 // ---------------------------------- Métodos de colisões ----------------------------------
@@ -1037,7 +1209,7 @@ void update()
     if(telaAtual == TELA_INICIAL){
         desenhaTelaInicial();
         acaoTela('p', TELA_JOGO);
-        Sleep(400);
+        dormir_ms(400);
         limparBufferTeclado();
     }
 
@@ -1057,7 +1229,7 @@ void update()
     if(telaAtual == TELA_GAMEOVER){
         desenhaTelaGameOver();
         acaoTela('p', TELA_INICIAL);
-        Sleep(400);
+        dormir_ms(400);
         limparBufferTeclado();
     }
     
@@ -1136,7 +1308,7 @@ void reset()
 
 //  ---------------------------------- UTIL ----------------------------------
 
-void limparBufferTeclado(){ if(kbhit()) getch(); }
+void limparBufferTeclado(){ while(ler_input() != -1); }
 
 void mudarTela(int tela)
 {
@@ -1147,8 +1319,7 @@ void mudarTela(int tela)
 // ---------------------------------- Main ----------------------------------
 
 int main(int argc, char* argv[]){
-    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
+    preparar_sistema();
     srand((unsigned)time(NULL));
 
     iniciar();
@@ -1156,7 +1327,7 @@ int main(int argc, char* argv[]){
     while(1)
     {   
         update();
-        Sleep(DELAY);
+        dormir_ms(DELAY);
     }
 
     return 0;
