@@ -916,11 +916,13 @@ void acaoTela(char teclaMudar, int tela)
         mudarTela(tela);
     }
 #else
-    int tecla = ler_input();
+    int tecla;
 
-    if (tecla == '\n' || tecla == 'c') {
-        // Ação Tela / Pause
-        mudarTela(tela);
+    while ((tecla = ler_input()) != -1) {
+        if (tecla == '\n' || tecla == 'c') {
+            // Ação Tela / Pause
+            mudarTela(tela);
+        }
     }
 #endif
 }
@@ -946,20 +948,23 @@ void acoesPlayer()
     }
 #else
     /* --- MOTOR DE INPUT DO LINUX (Uma tecla por vez, via terminal) --- */
-    int tecla = ler_input();
+    int tecla;
     
-    if (tecla == 'd')
+    while ((tecla = ler_input()) != -1)
     {
-        player.x += VELOCIDADE_X_PLAYER;
-        PLAYER_SPRITE = PLAYER_DIREITA;
+        if (tecla == 'd')
+        {
+            player.x += VELOCIDADE_X_PLAYER;
+            PLAYER_SPRITE = PLAYER_DIREITA;
+        }
+        if (tecla == 'a')
+        {
+            player.x -= VELOCIDADE_X_PLAYER;
+            PLAYER_SPRITE = PLAYER_ESQUERDA;
+        }
+        if (tecla == 's') player.y += VELOCIDADE_Y_PLAYER;
+        if (tecla == 'w') player.y -= VELOCIDADE_Y_PLAYER;
     }
-    if (tecla == 'a')
-    {
-        player.x -= VELOCIDADE_X_PLAYER;
-        PLAYER_SPRITE = PLAYER_ESQUERDA;
-    }
-    if (tecla == 's') player.y += VELOCIDADE_Y_PLAYER;
-    if (tecla == 'w') player.y -= VELOCIDADE_Y_PLAYER;
 #endif
 }
 
@@ -984,19 +989,21 @@ void acaoTiro()
 
 #else
 
-    int tecla = ler_input();
+    int tecla;
 
-    if (tecla == ' ')
-    {   
-        for(int i = 0; i < MAX_TIRO; i++)
-        {
-            if(!tiros[i].ativo)
+    while ((tecla = ler_input()) != -1) {
+        if (tecla == ' ')
+        {   
+            for(int i = 0; i < MAX_TIRO; i++)
             {
-                tiros[i].ativo = 1;
-                tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
-                tiros[i].y = player.y + 1;
-                tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
-                break;
+                if(!tiros[i].ativo)
+                {
+                    tiros[i].ativo = 1;
+                    tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
+                    tiros[i].y = player.y + 1;
+                    tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
+                    break;
+                }
             }
         }
     }
