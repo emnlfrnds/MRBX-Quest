@@ -195,6 +195,7 @@ const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
 #define TOTAL_FRAMES_INIMIGO 3
 #define VEL_ANIMACAO_INIMIGO 5
 #define VEL_X_INIMIGO 10
+#define INTERVALO_TIRO 86
 #define INIMIGO_MAX 4
 int TICK_INIMIGO;
 
@@ -525,8 +526,11 @@ void desenharEntidades(PEIXES entidade[], int entidade_max) {
 
                     if (caractere != ' ') {
                         int indice = py * TELA_LARGURA + px;
-                        
                         consoleBuffer[indice].Char.AsciiChar = caractere;
+                        if(entidade[e].y <= ALTURA_CEU - 1 && i < 1){
+                            consoleBuffer[indice].Attributes = entidade[e].cor | BACKGROUND_BLUE | BACKGROUND_INTENSITY;
+                            continue;   
+                        }
                         consoleBuffer[indice].Attributes = entidade[e].cor | BACKGROUND_BLUE;
                     }
                 }
@@ -580,8 +584,8 @@ void desenhaMorto()
             {
                 for(int j = 0; j < LARGURA_MORTO; j++)
                 {                    
-                    int posX = morto[m].x + i;
-                    int posY = morto[m].y + j;
+                    int posX = morto[m].x + j;
+                    int posY = morto[m].y + i;
                     
                     if(!(posX < 0 || posX > TELA_LARGURA || posY < 0 || posY > TELA_ALTURA)){
                         char caractere = ICON_MORTO[i][j];
@@ -589,6 +593,11 @@ void desenhaMorto()
                         if(!caractere != ' ')
                         {
                             consoleBuffer[posY * TELA_LARGURA + posX].Char.AsciiChar = caractere;
+
+                            if(morto[m].y <= ALTURA_CEU - 1 && i < 1) {
+                                consoleBuffer[posY * TELA_LARGURA + posX].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE | BACKGROUND_INTENSITY;
+                                continue;
+                            }
                             consoleBuffer[posY * TELA_LARGURA + posX].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
                         }
                     }
@@ -845,7 +854,7 @@ void spawnarInimigo() {
 
     while (tentativas < 5) {
         int alturaMin = 3;
-        int alturaMax = TELA_ALTURA - 2 - ALTURA_INIMIGO;
+        int alturaMax = TELA_ALTURA - 4 - ALTURA_INIMIGO;
         if(alturaMax == alturaMin) { alturaMax = alturaMin; }
 
         int alturaBase = alturaMin + (rand() % (alturaMax - alturaMin + 1));
@@ -891,7 +900,7 @@ void spawnarInimigo() {
             inimigo[i].altura = ALTURA_INIMIGO;
             inimigo[i].largura = LARGURA_INIMIGO;
             inimigo[i].tipo_ataque = 1;
-            inimigo[i].intervalo_ataque = 40;
+            inimigo[i].intervalo_ataque = INTERVALO_TIRO;
 
             if (ladoNascerFinal)
             {
@@ -912,7 +921,7 @@ void spawnarInimigo() {
 void gerenciarSpawns() {
     int sorteio = rand() % 100;
 
-    if (sorteio < 100) {
+    if (sorteio < 10) {
         spawnarInimigo();
     } else if (sorteio < 20) {
         spawnarTubarao(); 
@@ -972,7 +981,7 @@ void acaoTiro()
             {
                 if(!tiros[i].ativo)
                 {
-                    tiros[i].ativo = 1;
+                    tiros[i].ativo = 1;                    
                     tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
                     tiros[i].y = player.y + 1;
                     tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
@@ -986,7 +995,7 @@ void acaoTiro()
 void acaoTiroInimigo()
 {
     for (int ini = 0; ini < INIMIGO_MAX; ini++) {
-        if (inimigo[ini].vivo && inimigo[ini].intervalo_ataque <= 0) {
+        if (inimigo[ini].vivo && inimigo[ini].intervalo_ataque <= 0 && !(inimigo[ini].y <= ALTURA_CEU - 1)) {
             int i = inimigo[ini].indice_ataque;
 
             if (i >= 0 && i < MAX_TIRO_INIMIGO && !tirosInimigo[i].ativo) {
@@ -995,7 +1004,7 @@ void acaoTiroInimigo()
                 tirosInimigo[i].y = inimigo[ini].y + 1;
                 tirosInimigo[i].dx = (inimigo[ini].dx > 0) ? VEL_TIRO : -VEL_TIRO;
 
-                inimigo[ini].intervalo_ataque = 40;
+                inimigo[ini].intervalo_ataque = INTERVALO_TIRO;
             }
         }
     }
@@ -1021,22 +1030,46 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
     }
 }
 
-void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidade, int largura_entidade)
+void colisaoPlayerTiro(TIRO tiro[], int tiro_MAX) 
 {
-    for (int t = 0; t < MAX_TIRO; t++)
+    for (int t = 0; t < tiro_MAX; t++)
     {
-        if (tiros[t].ativo)
+        if (!tiro[t].ativo)
+        {
+            continue;
+        }
+
+        if (player.y < tiro[t].y + 1 && player.y + ALTURA_PLAYER > tiro[t].y &&
+            player.x < tiro[t].x + 1 && player.x + LARGURA_PLAYER > tiro[t].x)
+        {
+            resetEntidades();
+            player.vida--;
+            tiro[t].ativo = 0;
+            
+            player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
+            break;
+        }
+    }
+}
+
+void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidade, int largura_entidade, int tiro_MAX, TIRO tiro[], int isPlayer)
+{
+    for (int t = 0; t < tiro_MAX; t++)
+    {
+        if (tiro[t].ativo)
         {
             for (int e = 0; e < entidade_MAX; e++)
             {
                 if (entidade[e].vivo)
                 {
-                    if (entidade[e].y < tiros[t].y + 1 && entidade[e].y + altura_entidade > tiros[t].y &&
-                        entidade[e].x < tiros[t].x + 1 && entidade[e].x + largura_entidade > tiros[t].x)
+                    if (entidade[e].y < tiro[t].y + 1 && entidade[e].y + altura_entidade > tiro[t].y &&
+                        entidade[e].x < tiro[t].x + 1 && entidade[e].x + largura_entidade > tiro[t].x)
                     {
                         entidade[e].vida--;
-                        tiros[t].ativo = 0;
-                        player.score += 50;
+                        tiro[t].ativo = 0;
+                        if(isPlayer){
+                            player.score += 50;
+                        }
 
                         break;
                     }
@@ -1076,9 +1109,16 @@ void colisoes()
 {
     colisaoPlayerEntidade(peixe, PEIXE_MAX);
     colisaoPlayerEntidade(tubarao, TUBARAO_MAX);
-    colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE);
-    colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO);
+    colisaoPlayerEntidade(inimigo, INIMIGO_MAX);
+    colisaoPlayerTiro(tirosInimigo, MAX_TIRO_INIMIGO);
+    colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE, MAX_TIRO, tiros, 1);
+    colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO, MAX_TIRO, tiros, 1);
+    colisaoEntidadeTiro(inimigo, INIMIGO_MAX, ALTURA_INIMIGO, LARGURA_INIMIGO, MAX_TIRO, tiros, 1);
+    colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE, MAX_TIRO_INIMIGO, tirosInimigo, 0);
+    colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO, MAX_TIRO_INIMIGO, tirosInimigo, 0);
     checkEncontrosEntidades(tubarao, TUBARAO_MAX, peixe, PEIXE_MAX);
+    checkEncontrosEntidades(tubarao, TUBARAO_MAX, inimigo, INIMIGO_MAX);
+    checkEncontrosEntidades(inimigo, INIMIGO_MAX, peixe, PEIXE_MAX);
 }
 
 // ---------------------------------- Sistema de dificuldade ----------------------------------
@@ -1188,7 +1228,7 @@ void updateTiro()
                 
                 for(int ini = 0; ini < INIMIGO_MAX; ini++) {
                     if(inimigo[ini].indice_ataque == i) {
-                        inimigo[ini].intervalo_ataque = 40;
+                        inimigo[ini].intervalo_ataque = INTERVALO_TIRO;
                     }
                 }
             }
@@ -1204,7 +1244,7 @@ void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, i
             matarEntidade(entidade[e].x, entidade[e].y);
 
             if(entidade[e].tipo_ataque == 1) {
-                entidade[e].intervalo_ataque = 40;
+                entidade[e].intervalo_ataque = INTERVALO_TIRO;
                 if (entidade[e].indice_ataque >= 0 && entidade[e].indice_ataque < MAX_TIRO_INIMIGO) {
                     tirosInimigo[entidade[e].indice_ataque].ativo = 0;
                 }
@@ -1299,7 +1339,7 @@ void iniciarEntidade(PEIXES entidade[], int entidade_MAX, int tipo_ataque)
         entidade[e].vivo = 0;
 
         if (tipo_ataque == 1) {
-            entidade[e].intervalo_ataque = 40;
+            entidade[e].intervalo_ataque = INTERVALO_TIRO;
             entidade[e].indice_ataque = -1;
         }
     }
@@ -1310,8 +1350,7 @@ void iniciarTiros()
 {
     for(int i = 0; i < MAX_TIRO; i++)
     {   
-        tiros[i].ativo = 0;
-    }
+        tiros[i].ativo = 0;    }
     for(int i = 0; i < MAX_TIRO_INIMIGO; i++)
     {   
         tirosInimigo[i].ativo = 0;
