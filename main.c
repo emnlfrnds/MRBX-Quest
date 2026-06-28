@@ -3,6 +3,8 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
+
+//Bibliotecas de multimídia(som)
 #include <mmsystem.h>
 #pragma comment (lib, "winmm.lib")
 
@@ -211,13 +213,13 @@ SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 int relogioGlobal = 0;
 //-------------------------------Inicialização de sons-------------------------------------------
 void iniciarSons(){
-    mciSendString("open s ons/Alerta1.wav type waveaudio alias Alerta", NULL, 0, NULL);
+    mciSendString("open sons/Alerta1.wav type mpegvideo alias Alerta", NULL, 0, NULL);
     mciSendString("open sons/dano.wav type waveaudio alias Dano", NULL, 0, NULL);
     mciSendString("open sons/tiro.wav type waveaudio alias Tiro", NULL, 0, NULL);
-    mciSendString("open sons/respirando1.wav type waveaudio alias Respirando", NULL, 0, NULL);
+    mciSendString("open sons/respirando1.wav type mpegvideo alias Respirando", NULL, 0, NULL);
     mciSendString("open sons/salvando.wav type waveaudio alias Salvando", NULL, 0, NULL);
     mciSendString("open sons/resgate.wav type waveaudio alias Resgatando", NULL, 0, NULL);
-    mciSendString("open sons/peixehumanomorto.wav type waveaudio alias MorteEntidade", NULL, 0, NULL);
+    mciSendString("open sons/peixeehumanomorto.wav type waveaudio alias MorteEntidade", NULL, 0, NULL);
 }
 
 
@@ -286,9 +288,14 @@ void desenhaBarraOxigenio()
 
     WORD corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
 
-    if (frameAtual == 0 && player.nivelOxigenio < 250)
-    {
+    if  (frameAtual == 0 && player.nivelOxigenio < 250)
+    { 
         corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED;
+    }
+    if  (player.nivelOxigenio < 250 && player.respirando == 0){
+        mciSendString("play Alerta repeat", NULL, 0, NULL);
+    }else{
+        mciSendString("stop Alerta", NULL, 0, NULL);
     }
 
     char barras[25];
@@ -705,8 +712,8 @@ void acaoTiro()
                     tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x +  POS_TIRO_D: player.x + POS_TIRO_E;
                     tiros[i].y = player.y + 1;
                     tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
-                    mciSendString("play Tiro wait", NULL, 0, NULL);
-                    mciSendString("close Tiro", NULL, 0, NULL);
+                    mciSendString("play Tiro from 0", NULL, 0, NULL);
+                          
 
                     break;
                 }
@@ -728,8 +735,8 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
             entidade[e].vivo = 0;
             entidade[e].x = 0;
             player.vida--;
-            mciSendString("play Dano wait", NULL, 0, NULL);
-            mciSendString("close Dano", NULL, 0, NULL);
+            mciSendString("play Dano from 0", NULL, 0, NULL);
+            
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 
@@ -753,10 +760,10 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                         entidade[e].vida--;
                         tiros[t].ativo = 0;
                         player.score += 100;
-                        mciSendString("play MorteEntidade Volume 500", NULL, 0, NULL);
-                        mciSendString("close MorteEntidade", NULL, 0, NULL);
-
-
+                        mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
+                        
+                           
+ 
                         break;
                     }
                 }
@@ -785,6 +792,7 @@ void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entid
 
             if (checkColisaoEntidades(entidade1[e1], entidade2[e2])) {
                 entidade2[e2].vivo = 0;
+                mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
             }
         }
 
@@ -814,19 +822,19 @@ void aumentarVelEntidades() {
 
 
 // ---------------------------------- Métodos de atualizações ----------------------------------
-
+ 
 void updatePlayer()
 {
     acoesPlayer();
 
     if (player.x < 0)
     {
-        player.x = 0;
-    }
-    if (player.y < ALTURA_CEU - 1)
-    {
+        player.x = 0 ;
+    } 
+     if  (player.y < ALTURA_CEU - 1)
+    {                  
         player.y = ALTURA_CEU - 1;
-    }
+     }
     if (player.x + LARGURA_PLAYER > TELA_LARGURA)
     {
         player.x = TELA_LARGURA - LARGURA_PLAYER;
@@ -845,10 +853,12 @@ void updatePlayer()
     if(player.y <= ALTURA_CEU - 1){
         player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
+        mciSendString("play Respirando", NULL, 0, NULL);
         
     }else{
         player.respirando = 0;
         player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
+        
     }
 
     if(relogioGlobal % 5 == 0){
@@ -963,6 +973,7 @@ void iniciarMorto()
     iniciarPlayer();
     iniciarEntidade(peixe, PEIXE_MAX);
     iniciarEntidade(tubarao, TUBARAO_MAX);
+    iniciarSons();
     iniciarTiros();
     iniciarMorto();
 }
