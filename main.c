@@ -108,7 +108,7 @@ CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
 
     void renderizar_terminal_unix(void) {
         
-        printf(" [H"); /* Move cursor de volta ao topo (0,0) sem limpar a tela */
+        printf("\033[H"); /* Move cursor de volta ao topo (0,0) sem limpar a tela */
         
         int ult_fg = -1, ult_bg = -1, ult_bold = -1;
         
