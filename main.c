@@ -107,8 +107,8 @@ CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
     }
 
     void renderizar_terminal_unix(void) {
-        
-        printf("\033[H"); /* Move cursor de volta ao topo (0,0) sem limpar a tela */
+
+        printf("\033[H"); /* Move cursor de volta ao topo (0,0) */
         
         int ult_fg = -1, ult_bg = -1, ult_bold = -1;
         
@@ -124,16 +124,18 @@ CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
         
                 if (fg != ult_fg || bg != ult_bg || bold != ult_bold) {        
                     
-                    printf(" [%d;%d;%dm", bold ? 1 : 0, fg, bg);
+                    // correcao: Adicionado o \033 sem espaço!
+                    printf("\033[%d;%d;%dm", bold ? 1 : 0, fg, bg);
 
                     ult_fg = fg; ult_bg = bg; ult_bold = bold;
                 }
                 putchar(pixel.Char.AsciiChar ? pixel.Char.AsciiChar : ' ');
             }
-            putchar(' ');
+            // correcao: Pula a linha em vez de imprimir espaço
+            putchar('\n');
         }
-        fflush(stdout);    
-    }
+        fflush(stdout);
+}
 #endif
 
 //Constantes da tela
