@@ -235,6 +235,9 @@ typedef struct {
     int vida;
     int altura;
     int largura;
+    int tipo_ataque;
+    int intervalo_ataque;
+    int indice_ataque;
     const char **sprite;
     WORD cor;
 } PEIXES;
@@ -550,6 +553,23 @@ void desenhaTiro()
             }
         }
     }
+
+    for(int i = 0; i < MAX_TIRO_INIMIGO; i++) 
+    {
+        TIRO tiro = tirosInimigo[i];
+        if(tiro.ativo)
+        {
+            int posX = tiro.x,
+                posY = tiro.y,
+                indice = posY * TELA_LARGURA + posX;
+
+            if(posX < TELA_LARGURA && posX > 0){
+                consoleBuffer[indice].Char.AsciiChar = ICON_TIRO;
+                consoleBuffer[indice].Attributes = FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE;
+            }
+
+        }
+    }
 }
 
 void desenhaMorto()
@@ -861,12 +881,17 @@ void spawnarInimigo() {
     for (int i = 0; i < INIMIGO_MAX; i++) {
         if (!inimigo[i].vivo)
         {
+            int slotTiro = i % MAX_TIRO_INIMIGO;
+
             inimigo[i].vivo = 1;
             inimigo[i].vida = 4;
             inimigo[i].y = alturaBaseFinal;
+            inimigo[i].indice_ataque = slotTiro;
             
             inimigo[i].altura = ALTURA_INIMIGO;
             inimigo[i].largura = LARGURA_INIMIGO;
+            inimigo[i].tipo_ataque = 1;
+            inimigo[i].intervalo_ataque = 40;
 
             if (ladoNascerFinal)
             {
@@ -955,6 +980,24 @@ void acaoTiro()
                     break;
                 }
             }
+    }
+}
+
+void acaoTiroInimigo()
+{
+    for (int ini = 0; ini < INIMIGO_MAX; ini++) {
+        if (inimigo[ini].vivo && inimigo[ini].intervalo_ataque <= 0) {
+            int i = inimigo[ini].indice_ataque;
+
+            if (i >= 0 && i < MAX_TIRO_INIMIGO && !tirosInimigo[i].ativo) {
+                tirosInimigo[i].ativo = 1;
+                tirosInimigo[i].x = (inimigo[ini].dx > 0) ? inimigo[ini].x + POS_TIRO_D : inimigo[ini].x + POS_TIRO_E;
+                tirosInimigo[i].y = inimigo[ini].y + 1;
+                tirosInimigo[i].dx = (inimigo[ini].dx > 0) ? VEL_TIRO : -VEL_TIRO;
+
+                inimigo[ini].intervalo_ataque = 40;
+            }
+        }
     }
 }
 
@@ -1120,6 +1163,7 @@ void updatePlayer()
 void updateTiro()
 {   
     acaoTiro();
+    acaoTiroInimigo();
     for(int i = 0; i < MAX_TIRO; i++)
     {   
         if(tiros[i].ativo)
@@ -1131,6 +1175,25 @@ void updateTiro()
             }
         }
     }
+
+    // atira se acabar o intervalo e o inimigo poder atacar, desativa os tiros que sairem da tela, diminui o intervalo
+    for (int i = 0; i < MAX_TIRO_INIMIGO; i++)
+    {   
+        if(tirosInimigo[i].ativo)
+        {
+            tirosInimigo[i].x += tirosInimigo[i].dx;
+            if(tirosInimigo[i].x < 0 || tirosInimigo[i].x > TELA_LARGURA)
+            {
+                tirosInimigo[i].ativo = 0;
+                
+                for(int ini = 0; ini < INIMIGO_MAX; ini++) {
+                    if(inimigo[ini].indice_ataque == i) {
+                        inimigo[ini].intervalo_ataque = 40;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, int tick_entidade) {
@@ -1139,6 +1202,13 @@ void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, i
         {
             entidade[e].vivo = 0;
             matarEntidade(entidade[e].x, entidade[e].y);
+
+            if(entidade[e].tipo_ataque == 1) {
+                entidade[e].intervalo_ataque = 40;
+                if (entidade[e].indice_ataque >= 0 && entidade[e].indice_ataque < MAX_TIRO_INIMIGO) {
+                    tirosInimigo[entidade[e].indice_ataque].ativo = 0;
+                }
+            }
         }
         if (entidade[e].vivo) {
 
@@ -1146,6 +1216,18 @@ void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, i
 
             if (entidade[e].x <= 0 - largura_entidade || entidade[e].x > TELA_LARGURA + largura_entidade) {
                 entidade[e].vivo = 0;
+            }
+
+            if(entidade[e].tipo_ataque == 1) {
+                if(entidade[e].intervalo_ataque > 0) {
+                    entidade[e].intervalo_ataque--;
+                } 
+                else if(tirosInimigo[entidade[e].indice_ataque].ativo == 0) {
+                    int slotTiro = entidade[e].indice_ataque;
+                    if (slotTiro >= 0 && slotTiro < MAX_TIRO_INIMIGO && !tirosInimigo[slotTiro].ativo) {
+                        tirosInimigo[entidade[e].indice_ataque].ativo = 1;
+                    }
+                }
             }
         }
     }
@@ -1211,11 +1293,17 @@ void iniciarPlayer()
     player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 }
 
-void iniciarEntidade(PEIXES entidade[], int entidade_MAX)
+void iniciarEntidade(PEIXES entidade[], int entidade_MAX, int tipo_ataque)
 {
     for (int e = 0; e < entidade_MAX; e++) {
         entidade[e].vivo = 0;
+
+        if (tipo_ataque == 1) {
+            entidade[e].intervalo_ataque = 40;
+            entidade[e].indice_ataque = -1;
+        }
     }
+
 }
 
 void iniciarTiros()
@@ -1223,6 +1311,10 @@ void iniciarTiros()
     for(int i = 0; i < MAX_TIRO; i++)
     {   
         tiros[i].ativo = 0;
+    }
+    for(int i = 0; i < MAX_TIRO_INIMIGO; i++)
+    {   
+        tirosInimigo[i].ativo = 0;
     }
 }
 
@@ -1237,9 +1329,9 @@ void iniciarMorto()
 void iniciar()
 {   
     iniciarPlayer();
-    iniciarEntidade(peixe, PEIXE_MAX);
-    iniciarEntidade(tubarao, TUBARAO_MAX);
-    iniciarEntidade(inimigo, INIMIGO_MAX);
+    iniciarEntidade(peixe, PEIXE_MAX, 0);
+    iniciarEntidade(tubarao, TUBARAO_MAX, 0);
+    iniciarEntidade(inimigo, INIMIGO_MAX, 1);
     iniciarTiros();
     iniciarMorto();
 }
