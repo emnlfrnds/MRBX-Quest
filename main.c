@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <windows.h>
-#include <conio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -9,6 +7,100 @@
 #define TELA_ALTURA  25
 #define DELAY       30
 #define ALTURA_CEU   4
+
+#ifdef _WIN32
+    //windows
+    #include <windows.h>
+    #include <conio.h>
+    
+    HANDLE hConsole;
+    CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
+    COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
+    COORD bufferCoord = {0, 0};
+    SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
+
+    void dormirMs(int ms) {
+        Sleep(ms);
+    }
+#else
+    //linux/macos
+    #include <unistd.h>
+    #include <stdio.h>
+
+    void dormirMs(int ms) {
+        usleep(ms * 1000);
+    }
+
+    // mentindo para o Unix que o WORD e o CHAR_INFO do Windows existem
+    typedef unsigned short WORD;
+    typedef struct {
+        struct
+        {
+            char AsciiChar;
+            
+        } Char;
+        WORD Attributes;
+    } CHAR_INFO;
+
+    // mentindo sobre as cores (damos valores genéricos para o seu jogo continuar usando)
+    #define FOREGROUND_BLUE      1
+    #define FOREGROUND_GREEN     2
+    #define FOREGROUND_RED       4
+    #define FOREGROUND_INTENSITY 8
+    #define BACKGROUND_BLUE      16
+    #define BACKGROUND_GREEN     32
+    #define BACKGROUND_RED       64
+    #define BACKGROUND_INTENSITY 128
+
+    // criando o buffer falso para o Unix
+    CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
+#endif
+
+void atualizarTela() {
+    #ifdef _WIN32
+        WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    #else
+        printf("\033[H"); // Mova o cursor para o topo (sem piscar a tela)
+
+        int ansiWin[8] = {0, 4, 2, 6, 1, 5, 3, 7};
+
+        for (int i = 0; i < TELA_ALTURA; i++) {
+            for (int j = 0; j < TELA_LARGURA; j++) {
+                int indice = i * TELA_LARGURA + j;
+                char c = consoleBuffer[indice].Char.AsciiChar;
+                WORD cor = consoleBuffer[indice].Attributes;
+                
+                int fgWin = cor & 7; // Pega os 3 primeiros bits (Cor do texto)
+                int fgIntenso = (cor & FOREGROUND_INTENSITY) ? 60 : 0; // Se for intenso, muda pra tons claros
+            
+                int bgWin = (cor >> 4) & 7; // Pega os bits de fundo
+                int bgIntenso = (cor & BACKGROUND_INTENSITY) ? 60 : 0; // Se for intenso, muda pra tons claros
+            
+                int fgAnsi = 30 + ansiWin[fgWin] + fgIntenso;
+                int bgAnsi = 40 + ansiWin[bgWin] + bgIntenso;
+                
+                printf("%c", c != 0 ? c : ' '); // Imprime o caractere
+            }
+            printf("\n");
+        }
+        fflush(stdout); // Joga tudo na tela de uma vez
+    #endif
+}
+
+// Array com 6 cores vibrantes
+const WORD PALETA_DE_CORES[] = {
+    FOREGROUND_RED | FOREGROUND_INTENSITY,
+    FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+    FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+    FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+    FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY,
+    FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+    FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY,
+    FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+}; const int TOTAL_CORES = 9;
+
+// Telas
 
 #define TELA_INICIAL  0
 #define TELA_JOGO     1
@@ -47,14 +139,6 @@ const wchar_t *GAMEOVER[] = {
     L" Y88888P8  d88P     888 888       888 8888888888      Y8888888P      Y8P     8888888888 888   T88b",
 
 };
-
-// Array com 6 cores vibrantes
-const WORD PALETA_DE_CORES[] = {
-    FOREGROUND_GREEN | FOREGROUND_INTENSITY,                                    // Verde
-    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,                   // Amarelo
-    FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,                  // Ciano / Azul Claro
-    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY  // Branco
-}; const int TOTAL_CORES = 4;
 
 //Enzo Capitani: Criação do player
 
@@ -237,15 +321,107 @@ typedef struct {
 
 MORTO morto[MORTO_MAX];
 
-//Coisas do buffer
-HANDLE hConsole;
-CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
-COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
-COORD bufferCoord = {0, 0};
-SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
-
 int relogioGlobal = 0;
 int telaAtual = TELA_INICIAL;
+
+//portabilidade
+
+#ifndef _WIN32
+    // leitura do teclado
+    #include <termios.h>
+    #include <unistd.h>
+
+    struct termios terminalOriginal;
+
+    // Função que devolve o terminal ao normal quando o jogo fecha
+    void restaurarTerminal() {
+        tcsetattr(STDIN_FILENO, TCSANOW, &terminalOriginal);
+    }
+
+    void prepararTerminalCru() {
+        struct termios terminalCru;
+
+        // Salva o estado atual
+        tcgetattr(STDIN_FILENO, &terminalOriginal);
+        atexit(restaurarTerminal); 
+
+        // Copia as configurações
+        terminalCru = terminalOriginal;
+
+        // Desliga o ECHO (para a tecla não aparecer) e o ICANON (para ler direto)
+        terminalCru.c_lflag &= ~(ECHO | ICANON);
+
+        // VMIN = 0: Não espera um número mínimo de caracteres serem digitados
+        terminalCru.c_cc[VMIN] = 0;
+        
+        // VTIME = 0: Tempo de espera igual a zero. Retorna na hora!
+        terminalCru.c_cc[VTIME] = 0;
+
+        // Aplica as novas configurações imediatamente
+        tcsetattr(STDIN_FILENO, TCSANOW, &terminalCru);    
+    }
+
+    // O Windows usa esses códigos hexa, vamos replicar pro Unix
+    #define VK_UP      0x26
+    #define VK_DOWN    0x28
+    #define VK_LEFT    0x25
+    #define VK_RIGHT   0x27
+    #define VK_SPACE   0x20
+    #define VK_ESCAPE  0x1B
+    #define VK_CONTROL 0x11
+    
+    // Array para guardar quem está sendo pressionado no momento
+    char estadoTeclas[256] = {0};
+
+    void atualizarTecladoUnix() {
+        for(int i = 0; i < 256; i++) estadoTeclas[i] = 0;
+
+        unsigned char ch;
+    
+        // read() retorna > 0 se leu alguma tecla. 
+        // STDIN_FILENO (que vale 0) significa o teclado, vindo da <unistd.h>
+        while (read(STDIN_FILENO, &ch, 1) > 0) {
+        
+            if (ch == 27) { // 27 é o ESC (início de uma setinha)
+                unsigned char seq1, seq2;
+                
+                // Tenta ler os próximos caracteres que o terminal manda colados
+                if (read(STDIN_FILENO, &seq1, 1) > 0 && seq1 == '[') {
+                    if (read(STDIN_FILENO, &seq2, 1) > 0) {
+                        if (seq2 == 'A') estadoTeclas[VK_UP] = 3;
+                        else if (seq2 == 'B') estadoTeclas[VK_DOWN] = 3;
+                        else if (seq2 == 'C') estadoTeclas[VK_RIGHT] = 3;
+                        else if (seq2 == 'D') estadoTeclas[VK_LEFT] = 3;
+                    }
+                } else {
+                    // Se não veio o '[', o cara só apertou o botão ESC mesmo
+                    estadoTeclas[VK_ESCAPE] = 3; 
+                }
+            } 
+            else if (ch == ' ') {
+                estadoTeclas[VK_SPACE] = 3;
+            }
+            // O Truque do Control: Aceita Enter (\n ou \r) ou a letra 'C'/'c'
+            else if (ch == '\n' || ch == '\r' || ch == 'c' || ch == 'C') {
+                estadoTeclas[VK_CONTROL] = 3;
+            }
+        }
+    }
+
+    short GetAsyncKeyState(int vKey) {
+        if (vKey < 0 || vKey >= 256) return 0;
+        if (estadoTeclas[vKey]) return (short)0x8000;
+        return 0;
+    }
+#endif
+
+#ifdef _WIN32
+    // No Windows, esse macro não faz NADA (pois o Windows já lê o teclado sozinho)
+    #define PROCESSAR_TECLADO() 
+#else
+    // No Unix, esse macro chama a nossa função que lê as teclas
+    #define PROCESSAR_TECLADO() atualizarTecladoUnix()
+#endif
 
 //------------------------------- Protótipos -----------------------------------------------
 
@@ -308,7 +484,7 @@ void desenhaTelaInicial()
         }
     }
 
-    char textoIniciar[35];
+    char textoIniciar[100];
     sprintf(textoIniciar, "PRESSIONE CONTROL PARA INICIAR");
 
     int inicio = (ALTURA_LOGO + LOGO_Y + 1) * (TELA_LARGURA) + 48;
@@ -318,7 +494,7 @@ void desenhaTelaInicial()
         consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
     }
 
-    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    atualizarTela();
 }
 
 // -------------------- Parte da tela Game Over --------------------
@@ -342,7 +518,7 @@ void desenhaTelaGameOver()
         }
     }
 
-    char textoIniciar[35];
+    char textoIniciar[100];
     sprintf(textoIniciar, "PRESSIONE CONTROL PARA VOLTAR AO MENU");
 
     int inicio = (ALTURA_GAMEOVER + GAME_OVER_Y + 1) * (TELA_LARGURA) + 35;
@@ -352,7 +528,7 @@ void desenhaTelaGameOver()
         consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
     }
 
-    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    atualizarTela();
 }
 
 // -------------------- Parte da tela inicial --------------------
@@ -559,7 +735,7 @@ void desenhaTela()
     desenharEntidades(tubarao, TUBARAO_MAX);
     desenhaTiro();
     desenhaMorto();
-    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    atualizarTela();
 }
 
 // ---------------------------------- Sistemas Autônomos --------------------------------
@@ -1035,13 +1211,15 @@ void updateMorto()
 void update()
 {   
     if(telaAtual == TELA_INICIAL){
+        PROCESSAR_TECLADO();
         desenhaTelaInicial();
         acaoTela('p', TELA_JOGO);
-        Sleep(400);
+        dormirMs(400);
         limparBufferTeclado();
     }
 
     if(telaAtual == TELA_JOGO){
+        PROCESSAR_TECLADO();
         gerenciarSpawns();
         animacaoEntidades();
         updatePlayer();
@@ -1055,9 +1233,10 @@ void update()
     }
 
     if(telaAtual == TELA_GAMEOVER){
+        PROCESSAR_TECLADO();
         desenhaTelaGameOver();
         acaoTela('p', TELA_INICIAL);
-        Sleep(400);
+        dormirMs(400);
         limparBufferTeclado();
     }
     
@@ -1136,7 +1315,15 @@ void reset()
 
 //  ---------------------------------- UTIL ----------------------------------
 
-void limparBufferTeclado(){ if(kbhit()) getch(); }
+void limparBufferTeclado()
+{
+#ifdef _WIN32
+    while(kbhit()) getch();
+#else
+    int ch;
+    while((ch = getchar()) != EOF) {}
+#endif
+}
 
 void mudarTela(int tela)
 {
@@ -1147,7 +1334,16 @@ void mudarTela(int tela)
 // ---------------------------------- Main ----------------------------------
 
 int main(int argc, char* argv[]){
+
+#ifdef _WIN32
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+#else
+    prepararTerminalCru();
+
+    printf("\033[2J");   // Limpa a tela inteira do terminal do Unix
+    printf("\033[?25l"); // Esconde o cursor piscando para ficar com cara de jogo
+    fflush(stdout);      // Força o terminal a aplicar isso agora
+#endif
 
     srand((unsigned)time(NULL));
 
@@ -1156,8 +1352,12 @@ int main(int argc, char* argv[]){
     while(1)
     {   
         update();
-        Sleep(DELAY);
+        dormirMs(DELAY);
     }
+    
+#ifndef _WIN32
+    printf("\033[?25h"); 
+#endif
 
     return 0;
 }
