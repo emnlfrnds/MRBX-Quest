@@ -213,18 +213,17 @@ SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 int relogioGlobal = 0;
 //-------------------------------Inicialização de sons-------------------------------------------
 void iniciarSons(){
-    mciSendString("open sons/Alerta1.wav type mpegvideo alias Alerta", NULL, 0, NULL);
-    mciSendString("open sons/dano.wav type waveaudio alias Dano", NULL, 0, NULL);
-    mciSendString("open sons/tiro.wav type waveaudio alias Tiro", NULL, 0, NULL);
+    mciSendString("open sons/tiro.wav type mpegvideo alias Tiro", NULL, 0, NULL);
+    mciSendString("open sons/peixeehumanomorto.wav type mpegvideo alias MorteEntidade", NULL, 0, NULL);
+    mciSendString("open sons/dano.wav type mpegvideo alias Dano", NULL, 0, NULL);
     mciSendString("open sons/respirando1.wav type mpegvideo alias Respirando", NULL, 0, NULL);
-    mciSendString("open sons/salvando.wav type waveaudio alias Salvando", NULL, 0, NULL);
-    mciSendString("open sons/resgate.wav type waveaudio alias Resgatando", NULL, 0, NULL);
-    mciSendString("open sons/peixeehumanomorto.wav type waveaudio alias MorteEntidade", NULL, 0, NULL);
+    mciSendString("open sons/resgate.wav type mpegvideo alias Resgatando", NULL, 0, NULL);
+    mciSendString("open sons/Alerta1.wav type mpegvideo alias Alerta", NULL, 0, NULL); 
+    mciSendString("open sons/salvando.wav type mpegvideo alias Salvando", NULL, 0, NULL) ;
 }
 
 
 //------------------------------- Métodos de sons -----------------------------------------------
-
 
 // ---------------------------------- Animações das Entidades ------------------------------
 
@@ -852,12 +851,12 @@ void updatePlayer()
 
     if(player.y <= ALTURA_CEU - 1){
         player.respirando = 1;
-        player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
-        mciSendString("play Respirando", NULL, 0, NULL);
+        player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02; 
         
     }else{
         player.respirando = 0;
         player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
+        
         
     }
 
