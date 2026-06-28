@@ -190,6 +190,43 @@ const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     }
 };
 
+#define ALTURA_INIMIGO 2
+#define LARGURA_INIMIGO 8
+#define TOTAL_FRAMES_INIMIGO 3
+#define VEL_ANIMACAO_INIMIGO 5
+#define VEL_X_INIMIGO 10
+#define INIMIGO_MAX 4
+int TICK_INIMIGO;
+
+const char *INIMIGO_DIREITA[TOTAL_FRAMES_INIMIGO][ALTURA_INIMIGO] ={
+    {
+        "   _/| ",
+        "\\=|__|)"
+    },
+    {
+        "   _/|",
+        "-=|__|)"
+    },
+    {
+        "   _/| ",
+        "/=|__|)"
+    }
+};
+const char *INIMIGO_ESQUERDA[TOTAL_FRAMES_INIMIGO][ALTURA_INIMIGO] ={
+    {
+        " |\\_   ",
+        "(|__|=/"
+    },
+    {
+        " |\\_   ",
+        "(|__|=-"
+    },
+    {
+        " |\\_   ",
+        "(|__|=\\"
+    }
+};
+
 // Struct dos peixes
 typedef struct {
     int x, y;
@@ -202,12 +239,13 @@ typedef struct {
     WORD cor;
 } PEIXES;
 
-PEIXES peixe[PEIXE_MAX], tubarao[TUBARAO_MAX];
+PEIXES peixe[PEIXE_MAX], tubarao[TUBARAO_MAX], inimigo[INIMIGO_MAX];
 
 // Tiro
 #define VEL_TIRO 5
 #define ICON_TIRO '='
 #define MAX_TIRO 20
+#define MAX_TIRO_INIMIGO INIMIGO_MAX
 #define POS_TIRO_D 6
 #define POS_TIRO_E 1
 
@@ -218,6 +256,7 @@ typedef struct {
 } TIRO;
 
 TIRO tiros[MAX_TIRO];
+TIRO tirosInimigo[MAX_TIRO_INIMIGO];
 
 #define MORTO_MAX (PEIXE_MAX) //TODO Deve adicionar o MAX de inimigos no MORTO_MAX sempre que adicionar uma entidade nova
 #define ALTURA_MORTO 3
@@ -263,6 +302,7 @@ void animacaoEntidades() {
 
     int framePeixe = (relogioGlobal / VEL_ANIMACAO_PEIXE) % TOTAL_FRAMES_PEIXE;
     int frameTubarao = (relogioGlobal / VEL_ANIMACAO_TUBARAO) % TOTAL_FRAMES_TUBARAO;
+    int frameInimigo = (relogioGlobal / VEL_ANIMACAO_INIMIGO) % TOTAL_FRAMES_INIMIGO;
 
     for (int p = 0; p < PEIXE_MAX; p++) {
         if (peixe[p].vivo) {
@@ -280,6 +320,16 @@ void animacaoEntidades() {
                 tubarao[t].sprite = (const char **)TUBARAO_DIREITA[frameTubarao];
             } else {
                 tubarao[t].sprite = (const char **)TUBARAO_ESQUERDA[frameTubarao]; 
+            }
+        }
+    }
+
+    for (int i = 0; i < INIMIGO_MAX; i++) {
+        if (inimigo[i].vivo) {
+            if(inimigo[i].dx > 0) {
+                inimigo[i].sprite = (const char **)INIMIGO_DIREITA[frameInimigo];
+            } else {
+                inimigo[i].sprite = (const char **)INIMIGO_ESQUERDA[frameInimigo];
             }
         }
     }
@@ -557,6 +607,7 @@ void desenhaTela()
     desenhaPlayer();
     desenharEntidades(peixe, PEIXE_MAX);
     desenharEntidades(tubarao, TUBARAO_MAX);
+    desenharEntidades(inimigo, INIMIGO_MAX);
     desenhaTiro();
     desenhaMorto();
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
@@ -757,10 +808,88 @@ void spawnarTubarao() {
     }
 }
 
+void spawnarInimigo() {
+
+    // Chance
+
+    if(rand() % 4 != 0) { return; }
+
+    // Constantes
+
+    int alturaBaseFinal, ladoNascerFinal;
+
+    int posicaoLivre = 0;
+    int tentativas = 0;
+
+    // Verificação de linhas livres
+
+    while (tentativas < 5) {
+        int alturaMin = 3;
+        int alturaMax = TELA_ALTURA - 2 - ALTURA_INIMIGO;
+        if(alturaMax == alturaMin) { alturaMax = alturaMin; }
+
+        int alturaBase = alturaMin + (rand() % (alturaMax - alturaMin + 1));
+
+        int ladoNascer = (rand() % 2 == 0);
+
+        posicaoLivre = 1;
+
+        for ( int i = 0; i < INIMIGO_MAX; i++) {
+            if (inimigo[i].vivo) {
+                if (abs(alturaBase - inimigo[i].y) < (ALTURA_INIMIGO + 1)) {
+                    posicaoLivre = 0;
+                    break;
+                }
+            }
+        }
+        
+        if(posicaoLivre == 1) {
+            alturaBaseFinal = alturaBase;
+            ladoNascerFinal = ladoNascer;
+            break;
+        }
+
+        tentativas++;
+    }
+
+    if(posicaoLivre == 0) {
+        return;
+    }
+
+    // Nascimento
+
+    for (int i = 0; i < INIMIGO_MAX; i++) {
+        if (!inimigo[i].vivo)
+        {
+            inimigo[i].vivo = 1;
+            inimigo[i].vida = 4;
+            inimigo[i].y = alturaBaseFinal;
+            
+            inimigo[i].altura = ALTURA_INIMIGO;
+            inimigo[i].largura = LARGURA_INIMIGO;
+
+            if (ladoNascerFinal)
+            {
+                inimigo[i].x = 0 - LARGURA_INIMIGO;
+                inimigo[i].dx = 2;
+            }
+            else 
+            {
+                inimigo[i].x = TELA_LARGURA + LARGURA_INIMIGO;
+                inimigo[i].dx = -2;
+            }
+
+            break;
+        }
+    }
+}
+
 void gerenciarSpawns() {
     int sorteio = rand() % 100;
 
-    if (sorteio < 15) {
+    if (sorteio < 100) {
+        spawnarInimigo();
+    } else if (sorteio < 20) {
         spawnarTubarao(); 
     } else {
         spawnarPeixes(); 
@@ -920,22 +1049,27 @@ void aumentarVelEntidades() {
     if (dificuldade == 0) {
         TICK_PEIXE = 5;
         TICK_TUBARAO = 5;
+        TICK_INIMIGO = 5;
     }
     else if (dificuldade == 1) {
         TICK_PEIXE = 4;
         TICK_TUBARAO = 4;
+        TICK_INIMIGO = 4;        
     }
     else if (dificuldade == 3) {
         TICK_PEIXE = 3;
         TICK_TUBARAO = 3;
+        TICK_INIMIGO = 3;
     }
     else if (dificuldade == 4) {
         TICK_PEIXE = 2;
         TICK_TUBARAO = 2;
+        TICK_INIMIGO = 2;
     }
     else if (dificuldade >= 6) {
         TICK_PEIXE = 1;
         TICK_TUBARAO = 1;
+        TICK_INIMIGO = 1;
     }
 }
 
@@ -1048,6 +1182,7 @@ void update()
         aumentarVelEntidades();
         updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, TICK_PEIXE);
         updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, TICK_TUBARAO);
+        updateEntidade(inimigo, INIMIGO_MAX, LARGURA_INIMIGO, TICK_INIMIGO);
         updateTiro();
         updateMorto();
         colisoes();
@@ -1104,6 +1239,7 @@ void iniciar()
     iniciarPlayer();
     iniciarEntidade(peixe, PEIXE_MAX);
     iniciarEntidade(tubarao, TUBARAO_MAX);
+    iniciarEntidade(inimigo, INIMIGO_MAX);
     iniciarTiros();
     iniciarMorto();
 }
@@ -1122,6 +1258,11 @@ void resetEntidades()
     for(int i = 0; i < PEIXE_MAX; i++){
         peixe[i].vivo = 0;
         peixe[i].x = 0;
+    }
+
+    for(int i = 0; i < INIMIGO_MAX; i++){
+        inimigo[i].vivo = 0;
+        inimigo[i].x = 0;
     }
 
 }
