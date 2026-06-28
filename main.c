@@ -1216,7 +1216,6 @@ void updateTiro()
         }
     }
 
-    // atira se acabar o intervalo e o inimigo poder atacar, desativa os tiros que sairem da tela, diminui o intervalo
     for (int i = 0; i < MAX_TIRO_INIMIGO; i++)
     {   
         if(tirosInimigo[i].ativo)
