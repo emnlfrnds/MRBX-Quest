@@ -280,6 +280,7 @@ COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
 COORD bufferCoord = {0, 0};
 SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 
+int salvando = 0;
 int relogioGlobal = 0;
 int telaAtual = TELA_INICIAL;
 
@@ -668,6 +669,19 @@ void desenhaTela()
 
 // ---------------------------------- Sistemas Autônomos --------------------------------
 
+void salvarPessoa()
+{   
+    player.pessoasSalvas--;
+    player.score += 250;
+
+    if(player.pessoasSalvas <= 0){
+        salvando = 0;
+        resetEntidades();
+    }
+
+}
+
+// ---------------------------------- Spawn de objetos ----------------------------------
 void spawnarPeixes() {
     
     // Chance
@@ -775,7 +789,7 @@ void spawnarPeixes() {
 
 void spawnarPessoa()
 {
-    if(rand() % 80 != 0){return;}
+    if(rand() % 60 != 0){return;}
 
     int indice = rand() % MAX_PESSOAS;
 
@@ -1097,7 +1111,7 @@ void updatePlayer()
     if(player.nivelOxigenio > NIVEL_MAX_OXIGENIO)
         player.nivelOxigenio = NIVEL_MAX_OXIGENIO;
 
-    if(player.y <= ALTURA_CEU - 1){
+    if(player.y < ALTURA_CEU){
         player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
         
@@ -1108,6 +1122,10 @@ void updatePlayer()
 
     if(relogioGlobal % 5 == 0){
         player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
+    }
+
+    if(player.pessoasSalvas >= 5 && player.respirando){
+        salvando = 1;
     }
 
     aumentarVelEntidades();
@@ -1189,15 +1207,24 @@ void update()
     }
 
     if(telaAtual == TELA_JOGO){
-        gerenciarSpawns();
-        animacaoEntidades();
-        updatePlayer();
-        updatePessoa();
-        updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, VEL_PEIXE);
-        updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, VEL_TUBARAO);
-        updateTiro();
-        updateMorto();
-        colisoes();
+        
+        if(salvando){
+            salvarPessoa();
+            Sleep(800);
+        }
+
+        if(!salvando){
+            gerenciarSpawns();
+            updatePlayer();
+            updatePessoa();
+            animacaoEntidades();
+            updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, VEL_PEIXE);
+            updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, VEL_TUBARAO);
+            updateTiro();
+            updateMorto();
+            colisoes();
+        }
+
         desenhaTela();
     }
 
