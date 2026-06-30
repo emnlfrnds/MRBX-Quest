@@ -273,6 +273,7 @@ typedef struct {
     int vida;
     int altura;
     int largura;
+    int tipo;
     int tipo_ataque;
     int intervalo_ataque;
     int indice_ataque;
@@ -1268,6 +1269,37 @@ void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entid
     }
 }
 
+void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor ,int alturaPx, int larguraPx)
+{
+
+    for(int i = 0; i < MAX_PESSOAS; i++)
+    {   
+        if(pessoas[i].vivo){
+            for(int j = 0; j < tamanhoVetor; j++)
+            {
+                if(pessoas[i].x < peixes[j].x + larguraPx&&
+                pessoas[i].x + LARGURA_PESSOA > peixes[j].x &&
+                pessoas[i].y < peixes[j].y + alturaPx &&
+                pessoas[i].y + ALTURA_PESSOA > peixes[j].y)
+                {
+                    if(peixes[i].tipo == 1 || peixes[i].tipo == 2){
+                        pessoas[i].vivo = 0;
+                    }else{
+                        if(peixes[i].dx < 0){
+                            pessoas[i].x = peixes[j].x - LARGURA_PESSOA;
+                        }
+                        else{
+                            pessoas[i].x = peixes[j].x + larguraPx;
+                        }
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void colisaoPessoaPlayer()
 {
     for(int i = 0; i < MAX_PESSOAS; i++){
@@ -1295,6 +1327,9 @@ void colisoes()
     colisaoEntidadeTiro(inimigo, INIMIGO_MAX, ALTURA_INIMIGO, LARGURA_INIMIGO, MAX_TIRO, tiros, 1);
     colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE, MAX_TIRO_INIMIGO, tirosInimigo, 0);
     colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO, MAX_TIRO_INIMIGO, tirosInimigo, 0);
+    colisaoPessoaEntidade(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO);
+    colisaoPessoaEntidade(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE);
+    colisaoPessoaEntidade(inimigo, INIMIGO_MAX, ALTURA_INIMIGO, LARGURA_INIMIGO);
     colisaoPessoaPlayer();
     checkEncontrosEntidades(tubarao, TUBARAO_MAX, peixe, PEIXE_MAX);
     checkEncontrosEntidades(tubarao, TUBARAO_MAX, inimigo, INIMIGO_MAX);
@@ -1551,7 +1586,7 @@ void iniciarPlayer()
     player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 }
 
-void iniciarEntidade(PEIXES entidade[], int entidade_MAX, int tipo_ataque)
+void iniciarEntidade(PEIXES entidade[], int entidade_MAX, int tipo_ataque, int tipo)
 {
     for (int e = 0; e < entidade_MAX; e++) {
         entidade[e].vivo = 0;
@@ -1560,6 +1595,8 @@ void iniciarEntidade(PEIXES entidade[], int entidade_MAX, int tipo_ataque)
             entidade[e].intervalo_ataque = INTERVALO_TIRO;
             entidade[e].indice_ataque = -1;
         }
+
+        entidade[e].tipo = tipo;
     }
 
 }
@@ -1595,9 +1632,9 @@ void iniciarMorto()
 void iniciar()
 {   
     iniciarPlayer();
-    iniciarEntidade(peixe, PEIXE_MAX, 0);
-    iniciarEntidade(tubarao, TUBARAO_MAX, 0);
-    iniciarEntidade(inimigo, INIMIGO_MAX, 1);
+    iniciarEntidade(peixe, PEIXE_MAX, 0, 0);
+    iniciarEntidade(tubarao, TUBARAO_MAX, 0, 1);
+    iniciarEntidade(inimigo, INIMIGO_MAX, 1, 2);
     iniciarTiros();
     iniciarMorto();
     iniciarPessoas();
