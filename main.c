@@ -7,10 +7,9 @@
 //Constantes da tela
 #define TELA_LARGURA 125
 #define TELA_ALTURA  25
-#define DELAY       30
+#define DELAY        30
 #define ALTURA_CEU   4
-
-
+#define ALTURA_CHAO  2
 
 #define TELA_INICIAL  0
 #define TELA_JOGO     1
@@ -68,6 +67,7 @@ const WORD PALETA_DE_CORES[] = {
 #define VELOCIDADE_ANIMACAO_PLAYER 5 // as velocidades de animação são inversamente proporcionais ao seus defines
 #define NIVEL_MAX_OXIGENIO         1000
 #define TICK_PLAYER                2
+#define TICK_OXIGENIO              3
 /*
     Enzo Capitani: Sprites iniciais do submarino
 */
@@ -119,6 +119,7 @@ PLAYER player;
 #define TOTAL_FRAMES_PESSOA        3
 #define VELOCIDADE_ANIMACAO_PESSOA 7 // as velocidades de animação são inversamente proporcionais ao seus defines
 #define MAX_PESSOAS                2
+#define TICK_PESSOA                3
 
 const char *PESSOA_SPRITE[TOTAL_FRAMES_PESSOA][ALTURA_PESSOA] = {
     {
@@ -446,7 +447,7 @@ void desenhaTelaGameOver()
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
 }
 
-// -------------------- Parte da tela inicial --------------------
+// -------------------- Parte da tela do jogo --------------------
 
 void desenhaScore()
 {
@@ -722,8 +723,13 @@ void desenhaMapa()
             continue;
         }
 
-        if (i >= TELA_LARGURA * (TELA_ALTURA - 2)) {
-            consoleBuffer[i].Attributes = BACKGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_INTENSITY;
+        if(i >= TELA_LARGURA * (TELA_ALTURA - 1)){
+            consoleBuffer[i].Attributes = BACKGROUND_GREEN | BACKGROUND_RED;
+            continue;
+        }
+
+        if (i >= TELA_LARGURA * (TELA_ALTURA - ALTURA_CHAO)) {
+            consoleBuffer[i].Attributes = BACKGROUND_GREEN;
             continue;
         }
 
@@ -1211,7 +1217,7 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                     {
                         entidade[e].vida--;
                         tiro[t].ativo = 0;
-                        if(isPlayer){
+                        if(isPlayer && entidade[e].vida <= 0){
                             player.score += 50;
                         }
 
@@ -1346,13 +1352,12 @@ void updatePlayer()
     if(player.nivelOxigenio > NIVEL_MAX_OXIGENIO)
         player.nivelOxigenio = NIVEL_MAX_OXIGENIO;
 
-    if(player.y < ALTURA_CEU){
+    if(player.y < ALTURA_CEU && relogioGlobal % TICK_OXIGENIO == 0){
         player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
-        
-    }else{
+    }else if(relogioGlobal % TICK_OXIGENIO == 0){
         player.respirando = 0;
-        player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.002;
+        player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
     }
 
     if(relogioGlobal % 10 == 0){
@@ -1440,10 +1445,12 @@ void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, i
 void updatePessoa()
 {
     for(int p = 0; p < MAX_PESSOAS; p++){
-        if(pessoas[p].vivo && pessoas[p].lado == 1){
-            pessoas[p].x--;
-        }else if(pessoas[p].vivo){
-            pessoas[p].x++;
+        if(relogioGlobal % TICK_PESSOA == 0){
+            if(pessoas[p].vivo && pessoas[p].lado == 1){
+                pessoas[p].x--;
+            }else if(pessoas[p].vivo){
+                pessoas[p].x++;
+            }            
         }
 
         if(pessoas[p].x > TELA_LARGURA + LARGURA_PESSOA || pessoas[p].x < -LARGURA_PESSOA){
