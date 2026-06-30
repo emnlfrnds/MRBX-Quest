@@ -10,6 +10,8 @@
 #define DELAY       30
 #define ALTURA_CEU   4
 
+
+
 #define TELA_INICIAL  0
 #define TELA_JOGO     1
 #define TELA_GAMEOVER 2
@@ -104,11 +106,45 @@ const char *(*PLAYER_SPRITE)[ALTURA_PLAYER] = PLAYER_DIREITA;
 typedef struct
 {
     int x, y, score, nivelOxigenio, frameAtual;
-    int vida, respirando;
+    int vida, respirando, pessoasSalvas;
     WORD cor;
 } PLAYER;
 
 PLAYER player;
+
+//Enzo Capitani: Criação da pessoa afogada
+#define ALTURA_PESSOA              3
+#define LARGURA_PESSOA             3
+#define VELOCIDADE_PESSOA          2
+#define TOTAL_FRAMES_PESSOA        3
+#define VELOCIDADE_ANIMACAO_PESSOA 7 // as velocidades de animação são inversamente proporcionais ao seus defines
+#define MAX_PESSOAS                2
+
+const char *PESSOA_SPRITE[TOTAL_FRAMES_PESSOA][ALTURA_PESSOA] = {
+    {
+        " O ",
+        "/|\\",
+        "/ \\"
+    },
+    {
+        "_O_",
+        " | ",
+        "/ \\"
+    },
+    {
+        "\\O/",
+         " | ",
+         "/ \\"
+    },
+};
+
+typedef struct {
+    int x, y;
+    int vivo;
+    int lado;
+} PESSOAS;
+
+PESSOAS pessoas[MAX_PESSOAS];
 
 //Enzo Emanoel: Criação do peixe
 
@@ -287,6 +323,7 @@ COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
 COORD bufferCoord = {0, 0};
 SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 
+int salvando = 0;
 int relogioGlobal = 0;
 int telaAtual = TELA_INICIAL;
 
@@ -416,7 +453,7 @@ void desenhaScore()
     char textoScore[30];
     sprintf(textoScore, "Score: %d", player.score);
 
-    int inicio = TELA_LARGURA + 5;
+    int inicio = 5;
     for (int i = 0; textoScore[i] != '\0'; i++)
     {
         consoleBuffer[inicio + i].Char.AsciiChar = textoScore[i];
@@ -429,7 +466,7 @@ void desenhaVida()
     char textoVida[15];
     sprintf(textoVida, "Vida: %d", player.vida);
 
-    int inicio = TELA_LARGURA * 2 - 15;
+    int inicio = TELA_LARGURA - 15;
     for (int i = 0; textoVida[i] != '\0'; i++)
     {
         consoleBuffer[inicio + i].Char.AsciiChar = textoVida[i];
@@ -466,11 +503,48 @@ void desenhaBarraOxigenio()
     char barraOxigenio[51];
     sprintf(barraOxigenio, "OXIGENIO: [%s]", barras);
 
-    int inicio = TELA_LARGURA + 40;
+    int inicio = 40;
     for (int i = 0; barraOxigenio[i] != '\0'; i++)
     {
         consoleBuffer[inicio + i].Char.AsciiChar = barraOxigenio[i];
         consoleBuffer[inicio + i].Attributes = corBarraOx;
+    }
+}
+
+void desenhaPessoasSalvas()
+{
+    int frameAtual = relogioGlobal % 3;
+
+    WORD cor = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
+
+    if (frameAtual == 0 && player.pessoasSalvas == 5)
+    {
+        cor = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED;
+    }
+
+    char barras[5];
+    int indice = 0;
+    for (int i = 0; i < 5; i++)
+    {
+        if (i < player.pessoasSalvas)
+        {
+            barras[indice] = 'O';
+            indice++;
+            continue;
+        }
+        barras[indice] = ' ';
+        indice++;
+    }
+    barras[5] = '\0';
+
+    char barra[18];
+    sprintf(barra, "PESSOAS: [%s]", barras);
+
+    int inicio = TELA_LARGURA + 45;
+    for (int i = 0; barra[i] != '\0'; i++)
+    {
+        consoleBuffer[inicio + i].Char.AsciiChar = barra[i];
+        consoleBuffer[inicio + i].Attributes = cor;
     }
 }
 
@@ -576,6 +650,36 @@ void desenhaTiro()
     }
 }
 
+void desenhaPessoa(){
+     int frameAtualPessoa = (relogioGlobal / VELOCIDADE_ANIMACAO_PESSOA) % TOTAL_FRAMES_PESSOA;
+
+    for(int p = 0; p < MAX_PESSOAS; p++){
+        if(pessoas[p].vivo){
+            for(int i = 0; i < ALTURA_PESSOA; i++){
+                for(int j = 0; j < LARGURA_PESSOA; j++){
+
+                    int posX = pessoas[p].x + j;
+                    int posY = pessoas[p].y + i;
+
+                    int indice = posY * TELA_LARGURA + posX;
+
+                     if(!(posX < 0 || posX > TELA_LARGURA || posY < 0 || posY > TELA_ALTURA)){
+                        char caractere = PESSOA_SPRITE[frameAtualPessoa][i][j];
+
+                        if(!caractere != ' ')
+                        {
+                            consoleBuffer[indice].Char.AsciiChar = caractere;
+                            consoleBuffer[indice].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
+                        }
+                     }
+
+                }
+            }
+        }
+    }
+}
+
+
 void desenhaMorto()
 {
     for(int m = 0; m < MORTO_MAX; m++){
@@ -633,7 +737,9 @@ void desenhaTela()
     desenhaVida();
     desenhaScore();
     desenhaBarraOxigenio();
+    desenhaPessoasSalvas();
     desenhaPlayer();
+    desenhaPessoa();
     desenharEntidades(peixe, PEIXE_MAX);
     desenharEntidades(tubarao, TUBARAO_MAX);
     desenharEntidades(inimigo, INIMIGO_MAX);
@@ -644,6 +750,19 @@ void desenhaTela()
 
 // ---------------------------------- Sistemas Autônomos --------------------------------
 
+void salvarPessoa()
+{   
+    player.pessoasSalvas--;
+    player.score += 250;
+
+    if(player.pessoasSalvas <= 0){
+        salvando = 0;
+        resetEntidades();
+    }
+
+}
+
+// ---------------------------------- Spawn de objetos ----------------------------------
 void spawnarPeixes() {
     
     // Chance
@@ -747,6 +866,29 @@ void spawnarPeixes() {
             if (peixesNascidos >= tamanhoCardumeFinal) { break; }
         }
     }
+}
+
+void spawnarPessoa()
+{
+    if(rand() % 60 != 0){return;}
+
+    int indice = rand() % MAX_PESSOAS;
+
+    if(pessoas[indice].vivo)
+        return;
+
+    if(rand() % 2 == 0){
+        pessoas[indice].lado = 0 - LARGURA_PESSOA;
+        pessoas[indice].x = 0;
+    }else{
+        pessoas[indice].lado = 1;
+        pessoas[indice].x = TELA_LARGURA + LARGURA_PESSOA;
+    }
+
+    pessoas[indice].y = (rand() % (21 - 8)) + 8;
+
+    pessoas[indice].vivo = 1;
+
 }
 
 void spawnarTubarao() {
@@ -928,6 +1070,8 @@ void gerenciarSpawns() {
     } else {
         spawnarPeixes(); 
     }
+
+    spawnarPessoa();
 }
 
 void matarEntidade(int posX, int posY)
@@ -1105,6 +1249,22 @@ void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entid
     }
 }
 
+void colisaoPessoaPlayer()
+{
+    for(int i = 0; i < MAX_PESSOAS; i++){
+        if (player.x + LARGURA_PLAYER > pessoas[i].x &&
+            player.x < pessoas[i].x + LARGURA_PESSOA &&
+            player.y + ALTURA_PLAYER > pessoas[i].y &&
+            player.y < pessoas[i].y + ALTURA_PESSOA && pessoas[i].vivo == 1)
+        {
+            pessoas[i].vivo = 0;
+
+            if(player.pessoasSalvas < 5)
+                player.pessoasSalvas++;
+        }
+    }
+}
+
 void colisoes()
 {
     colisaoPlayerEntidade(peixe, PEIXE_MAX);
@@ -1116,6 +1276,7 @@ void colisoes()
     colisaoEntidadeTiro(inimigo, INIMIGO_MAX, ALTURA_INIMIGO, LARGURA_INIMIGO, MAX_TIRO, tiros, 1);
     colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE, MAX_TIRO_INIMIGO, tirosInimigo, 0);
     colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO, MAX_TIRO_INIMIGO, tirosInimigo, 0);
+    colisaoPessoaPlayer();
     checkEncontrosEntidades(tubarao, TUBARAO_MAX, peixe, PEIXE_MAX);
     checkEncontrosEntidades(tubarao, TUBARAO_MAX, inimigo, INIMIGO_MAX);
     checkEncontrosEntidades(inimigo, INIMIGO_MAX, peixe, PEIXE_MAX);
@@ -1185,7 +1346,7 @@ void updatePlayer()
     if(player.nivelOxigenio > NIVEL_MAX_OXIGENIO)
         player.nivelOxigenio = NIVEL_MAX_OXIGENIO;
 
-    if(player.y <= ALTURA_CEU - 1){
+    if(player.y < ALTURA_CEU){
         player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
         
@@ -1196,6 +1357,10 @@ void updatePlayer()
 
     if(relogioGlobal % 10 == 0){
         player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
+    }
+
+    if(player.pessoasSalvas >= 5 && player.respirando){
+        salvando = 1;
     }
 
 }
@@ -1272,6 +1437,22 @@ void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, i
     }
 }
 
+void updatePessoa()
+{
+    for(int p = 0; p < MAX_PESSOAS; p++){
+        if(pessoas[p].vivo && pessoas[p].lado == 1){
+            pessoas[p].x--;
+        }else if(pessoas[p].vivo){
+            pessoas[p].x++;
+        }
+
+        if(pessoas[p].x > TELA_LARGURA + LARGURA_PESSOA || pessoas[p].x < -LARGURA_PESSOA){
+            pessoas[p].vivo = 0;
+        }
+
+    }
+}
+
 void updateMorto()
 {
     for(int m = 0; m < MORTO_MAX; m++)
@@ -1297,16 +1478,26 @@ void update()
     }
 
     if(telaAtual == TELA_JOGO){
-        gerenciarSpawns();
-        animacaoEntidades();
-        updatePlayer();
-        aumentarVelEntidades();
-        updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, TICK_PEIXE);
-        updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, TICK_TUBARAO);
-        updateEntidade(inimigo, INIMIGO_MAX, LARGURA_INIMIGO, TICK_INIMIGO);
-        updateTiro();
-        updateMorto();
-        colisoes();
+        
+        if(salvando){
+            salvarPessoa();
+            Sleep(800);
+        }
+
+        if(!salvando){
+            gerenciarSpawns();
+            updatePlayer();
+            aumentarVelEntidades();
+            updatePessoa();
+            animacaoEntidades();
+            updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, TICK_PEIXE);
+            updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, TICK_TUBARAO);
+            updateEntidade(inimigo, INIMIGO_MAX, LARGURA_INIMIGO, TICK_INIMIGO);
+            updateTiro();
+            updateMorto();
+            colisoes();
+        }
+
         desenhaTela();
     }
 
@@ -1329,6 +1520,7 @@ void iniciarPlayer()
     player.vida = 5;
     player.score = 0;
     player.respirando = 0;
+    player.pessoasSalvas = 0;
     player.cor = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 }
 
@@ -1349,10 +1541,19 @@ void iniciarTiros()
 {
     for(int i = 0; i < MAX_TIRO; i++)
     {   
-        tiros[i].ativo = 0;    }
+        tiros[i].ativo = 0;   
+    }
     for(int i = 0; i < MAX_TIRO_INIMIGO; i++)
     {   
         tirosInimigo[i].ativo = 0;
+    }
+}
+
+void iniciarPessoas(){
+    for(int p = 0; p < MAX_PESSOAS; p++){
+        pessoas[p].vivo = 0;
+        pessoas[p].x = 0;
+        pessoas[p].y = 0;
     }
 }
 
@@ -1372,6 +1573,7 @@ void iniciar()
     iniciarEntidade(inimigo, INIMIGO_MAX, 1);
     iniciarTiros();
     iniciarMorto();
+    iniciarPessoas();
 }
 
 //  ---------------------------------- RESET ----------------------------------
