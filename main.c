@@ -335,6 +335,7 @@ void limparBufferTeclado();
 
 void resetEntidades();
 void reset();
+void iniciar();
 
 //------------------------------- Métodos de sons -----------------------------------------------
 
@@ -764,6 +765,7 @@ void salvarPessoa()
     if(player.pessoasSalvas <= 0){
         salvando = 0;
         resetEntidades();
+        player.nivelOxigenio = 1000;
     }
 
 }
@@ -1097,10 +1099,11 @@ void matarEntidade(int posX, int posY)
 
 // ---------------------------------- Métodos de ações ----------------------------------
 
-void acaoTela(char teclaMudar, int tela)
+void acaoTela(int tela)
 {
     if(GetAsyncKeyState(VK_CONTROL)){
         mudarTela(tela);
+        iniciar();
     }
 }
 
@@ -1160,6 +1163,18 @@ void acaoTiroInimigo()
     }
 }
 
+void levarDano()
+{
+    player.vida--;
+    resetEntidades();
+    player.x = 64 - LARGURA_PLAYER;
+    player.y = ALTURA_CEU;
+    player.nivelOxigenio = 1000;
+    player.pessoasSalvas = 0;
+
+    Sleep(300);
+}
+
 // ---------------------------------- Métodos de colisões ----------------------------------
 
 void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
@@ -1171,8 +1186,7 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
               player.y + ALTURA_PLAYER > entidade[e].y &&
                player.y < entidade[e].y + ALTURA_PEIXE && entidade[e].vivo == 1)
         {
-            resetEntidades();
-            player.vida--;
+            levarDano();
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 
@@ -1192,8 +1206,7 @@ void colisaoPlayerTiro(TIRO tiro[], int tiro_MAX)
         if (player.y < tiro[t].y + 1 && player.y + ALTURA_PLAYER > tiro[t].y &&
             player.x < tiro[t].x + 1 && player.x + LARGURA_PLAYER > tiro[t].x)
         {
-            resetEntidades();
-            player.vida--;
+            levarDano();
             tiro[t].ativo = 0;
             
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -1327,7 +1340,14 @@ void aumentarVelEntidades() {
 
 void updatePlayer()
 {
+    if(player.vida <= 0) telaAtual = TELA_GAMEOVER;
+    
     acoesPlayer();
+
+    if(player.nivelOxigenio == 0){
+        player.vida--;
+        resetEntidades();
+    } 
 
     if (player.x < 0)
     {
@@ -1479,7 +1499,7 @@ void update()
 {   
     if(telaAtual == TELA_INICIAL){
         desenhaTelaInicial();
-        acaoTela('p', TELA_JOGO);
+        acaoTela(TELA_JOGO);
         Sleep(400);
         limparBufferTeclado();
     }
@@ -1510,7 +1530,7 @@ void update()
 
     if(telaAtual == TELA_GAMEOVER){
         desenhaTelaGameOver();
-        acaoTela('p', TELA_INICIAL);
+        acaoTela(TELA_INICIAL);
         Sleep(400);
         limparBufferTeclado();
     }
@@ -1521,8 +1541,8 @@ void update()
 // ---------------------------------- Métodos de inicializações ----------------------------------
 void iniciarPlayer()
 {
-    player.x = 30;
-    player.y = 15;
+    player.x = 64 - LARGURA_PLAYER;
+    player.y = ALTURA_CEU;
     player.nivelOxigenio = 1000;
     player.vida = 5;
     player.score = 0;
