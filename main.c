@@ -68,9 +68,28 @@ const WORD PALETA_DE_CORES[] = {
 #define NIVEL_MAX_OXIGENIO         1000
 #define TICK_PLAYER                2
 #define TICK_OXIGENIO              3
+int salvando = 0;
+int morrendo = 0;
+int frameMorte = 0, primeiroFrame = 1;
 /*
     Enzo Capitani: Sprites iniciais do submarino
 */
+
+const char *PLAYER_MORTO[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
+    {
+        "  --__-- ",
+        "  --  -- ",
+    },
+    {
+        " -  _  -",
+        " -     -",
+    },
+    {
+        "        ",
+        "        ",
+    },
+};
+
 const char *PLAYER_ESQUERDA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
     {
         "  |_     ",
@@ -101,6 +120,8 @@ const char *PLAYER_DIREITA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
 };
 
 const char *(*PLAYER_SPRITE)[ALTURA_PLAYER] = PLAYER_DIREITA;
+
+
 
 //Struct do player
 typedef struct
@@ -325,7 +346,6 @@ COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
 COORD bufferCoord = {0, 0};
 SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA-1, TELA_ALTURA-1};
 
-int salvando = 0;
 int relogioGlobal = 0;
 int telaAtual = TELA_INICIAL;
 
@@ -337,6 +357,7 @@ void limparBufferTeclado();
 void resetEntidades();
 void reset();
 void iniciar();
+void animacaoDano();
 
 //------------------------------- Métodos de sons -----------------------------------------------
 
@@ -552,8 +573,13 @@ void desenhaPessoasSalvas()
 }
 
 void desenhaPlayer()
-{
-    int frameAtualPlayer = (relogioGlobal / VELOCIDADE_ANIMACAO_PLAYER) % TOTAL_FRAMES_JOGADOR;
+{   
+    int frameAtualPlayer;
+    if(!morrendo){
+        frameAtualPlayer = (relogioGlobal / VELOCIDADE_ANIMACAO_PLAYER) % TOTAL_FRAMES_JOGADOR;
+    }else{
+        frameAtualPlayer = frameMorte;
+    }
 
     for (int i = 0; i < ALTURA_PLAYER; i++)
     {
@@ -569,8 +595,7 @@ void desenhaPlayer()
 
                 char caractere = PLAYER_SPRITE[frameAtualPlayer][i][j];
 
-                if (caractere != ' ')
-                {
+                if(caractere != ' '){
                     consoleBuffer[indice].Char.AsciiChar = caractere;
                     if(player.y <= ALTURA_CEU - 1 && i < 1){
                         consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_INTENSITY;
@@ -669,7 +694,7 @@ void desenhaPessoa(){
                      if(!(posX < 0 || posX > TELA_LARGURA || posY < 0 || posY > TELA_ALTURA)){
                         char caractere = PESSOA_SPRITE[frameAtualPessoa][i][j];
 
-                        if(!caractere != ' ')
+                        if(caractere != ' ')
                         {
                             consoleBuffer[indice].Char.AsciiChar = caractere;
                             consoleBuffer[indice].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
@@ -697,7 +722,7 @@ void desenhaMorto()
                     if(!(posX < 0 || posX > TELA_LARGURA || posY < 0 || posY > TELA_ALTURA)){
                         char caractere = ICON_MORTO[i][j];
 
-                        if(!caractere != ' ')
+                        if(caractere != ' ')
                         {
                             consoleBuffer[posY * TELA_LARGURA + posX].Char.AsciiChar = caractere;
 
@@ -746,13 +771,14 @@ void desenhaTela()
     desenhaScore();
     desenhaBarraOxigenio();
     desenhaPessoasSalvas();
-    desenhaPlayer();
+    desenhaPlayer();    
     desenhaPessoa();
     desenharEntidades(peixe, PEIXE_MAX);
     desenharEntidades(tubarao, TUBARAO_MAX);
     desenharEntidades(inimigo, INIMIGO_MAX);
     desenhaTiro();
     desenhaMorto();
+
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
 }
 
@@ -1172,8 +1198,6 @@ void levarDano()
     player.y = ALTURA_CEU;
     player.nivelOxigenio = 1000;
     player.pessoasSalvas = 0;
-
-    Sleep(300);
 }
 
 // ---------------------------------- Métodos de colisões ----------------------------------
@@ -1186,8 +1210,9 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
              player.x < entidade[e].x + LARGURA_PEIXE &&
               player.y + ALTURA_PLAYER > entidade[e].y &&
                player.y < entidade[e].y + ALTURA_PEIXE && entidade[e].vivo == 1)
-        {
-            levarDano();
+        {   
+            resetEntidades();
+            morrendo = 1;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 
@@ -1207,7 +1232,7 @@ void colisaoPlayerTiro(TIRO tiro[], int tiro_MAX)
         if (player.y < tiro[t].y + 1 && player.y + ALTURA_PLAYER > tiro[t].y &&
             player.x < tiro[t].x + 1 && player.x + LARGURA_PLAYER > tiro[t].x)
         {
-            levarDano();
+            morrendo = 1;
             tiro[t].ativo = 0;
             
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -1316,21 +1341,45 @@ void colisaoPessoaPlayer()
     }
 }
 
+void animacaoDano(){
+
+    if(!primeiroFrame){
+        frameMorte++;
+    }
+
+    if(frameMorte >= 3){
+        frameMorte = 0;
+        morrendo = 0;
+        PLAYER_SPRITE = PLAYER_DIREITA;
+        primeiroFrame = 1; 
+        levarDano();
+    }
+
+    primeiroFrame = 0;
+
+    Sleep(500);
+}
+
 void colisoes()
 {
     colisaoPlayerEntidade(peixe, PEIXE_MAX);
     colisaoPlayerEntidade(tubarao, TUBARAO_MAX);
     colisaoPlayerEntidade(inimigo, INIMIGO_MAX);
+
     colisaoPlayerTiro(tirosInimigo, MAX_TIRO_INIMIGO);
+
     colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE, MAX_TIRO, tiros, 1);
     colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO, MAX_TIRO, tiros, 1);
     colisaoEntidadeTiro(inimigo, INIMIGO_MAX, ALTURA_INIMIGO, LARGURA_INIMIGO, MAX_TIRO, tiros, 1);
+
     colisaoEntidadeTiro(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE, MAX_TIRO_INIMIGO, tirosInimigo, 0);
     colisaoEntidadeTiro(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO, MAX_TIRO_INIMIGO, tirosInimigo, 0);
+
     colisaoPessoaEntidade(tubarao, TUBARAO_MAX, ALTURA_TUBARAO, LARGURA_TUBARAO);
     colisaoPessoaEntidade(peixe, PEIXE_MAX, ALTURA_PEIXE, LARGURA_PEIXE);
     colisaoPessoaEntidade(inimigo, INIMIGO_MAX, ALTURA_INIMIGO, LARGURA_INIMIGO);
     colisaoPessoaPlayer();
+
     checkEncontrosEntidades(tubarao, TUBARAO_MAX, peixe, PEIXE_MAX);
     checkEncontrosEntidades(tubarao, TUBARAO_MAX, inimigo, INIMIGO_MAX);
     checkEncontrosEntidades(inimigo, INIMIGO_MAX, peixe, PEIXE_MAX);
@@ -1541,12 +1590,17 @@ void update()
 
     if(telaAtual == TELA_JOGO){
         
-        if(salvando){
+        if(salvando && !morrendo){
             salvarPessoa();
             Sleep(800);
         }
+        
+        if(morrendo){
+            PLAYER_SPRITE = PLAYER_MORTO;
+            animacaoDano();
+        }
 
-        if(!salvando){
+        if(!salvando && !morrendo){
             gerenciarSpawns();
             updatePlayer();
             aumentarVelEntidades();
@@ -1556,10 +1610,10 @@ void update()
             updateEntidade(tubarao, TUBARAO_MAX, LARGURA_TUBARAO, TICK_TUBARAO);
             updateEntidade(inimigo, INIMIGO_MAX, LARGURA_INIMIGO, TICK_INIMIGO);
             updateTiro();
-            updateMorto();
             colisoes();
+            updateMorto();
         }
-
+        
         desenhaTela();
     }
 
