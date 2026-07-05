@@ -4,19 +4,14 @@
 #include <stdlib.h>
 #include <time.h>
 
-// Constantes da tela
-
 #define TELA_LARGURA 125
 #define TELA_ALTURA 25
 #define DELAY 30
 #define ALTURA_CEU 4
 #define ALTURA_CHAO 2
-
 #define TELA_INICIAL 0
 #define TELA_JOGO 1
 #define TELA_GAMEOVER 2
-
-// Constantes da tela inicial
 
 #define LARGURA_LOGO 56
 #define ALTURA_LOGO 5
@@ -24,13 +19,14 @@
 #define LOGO_Y 8
 
 const char *MRBX_QUESTLOGO[ALTURA_LOGO] = {
+
     " __  __ ____  ______  __   ___  _   _ _____ ____ _____ ",
     "|  \\/  |  _ \\| __ ) \\/ /  / _ \\| | | | ____/ ___|_   _|",
     "| |\\/| | |_) |  _ \\\\  /  | | | | | | |  _| \\___ \\ | |  ",
     "| |  | |  _ <| |_) /  \\  | |_| | |_| | |___ ___) || |  ",
-    "|_|  |_|_| \\_\\____/_/\\_\\  \\__\\_\\\\___/|_____|____/ |_|  "};
+    "|_|  |_|_| \\_\\____/_/\\_\\  \\__\\_\\\\___/|_____|____/ |_|  "
 
-// Constantes da tela Game Over:
+};
 
 #define ALTURA_GAMEOVER 8
 #define LARGURA_GAMEOVER 100
@@ -50,34 +46,26 @@ const wchar_t *GAMEOVER[] = {
 
 };
 
-// Array com 6 cores vibrantes
-
 const WORD PALETA_DE_CORES[] = {
-    FOREGROUND_GREEN | FOREGROUND_INTENSITY,                                   // Verde
-    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,                  // Amarelo
-    FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,                 // Ciano / Azul Claro
-    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY // Branco
-};
-const int TOTAL_CORES = 4;
-
-// Enzo Capitani: Criação do player
+    FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+    FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY
+}; const int TOTAL_CORES = 4;
 
 #define ALTURA_PLAYER 2
 #define LARGURA_PLAYER 9
 #define VELOCIDADE_X_PLAYER 2
 #define VELOCIDADE_Y_PLAYER 1
 #define TOTAL_FRAMES_JOGADOR 3
-#define VELOCIDADE_ANIMACAO_PLAYER 5 // as velocidades de animação são inversamente proporcionais ao seus defines
+#define VELOCIDADE_ANIMACAO_PLAYER 5
 #define NIVEL_MAX_OXIGENIO 1000
 #define TICK_PLAYER 2
 #define TICK_OXIGENIO 3
+
 int salvando = 0;
 int morrendo = 0;
 int frameMorte = 0, primeiroFrame = 1;
-
-/*
-    Enzo Capitani: Sprites iniciais do submarino
-*/
 
 const char *PLAYER_MORTO[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
     {
@@ -106,7 +94,8 @@ const char *PLAYER_ESQUERDA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
     {
         "  |_     ",
         "([___]=|\\",
-    }};
+    }
+};
 
 const char *PLAYER_DIREITA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
     {
@@ -125,7 +114,6 @@ const char *PLAYER_DIREITA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
 
 const char *(*PLAYER_SPRITE)[ALTURA_PLAYER] = PLAYER_DIREITA;
 
-// Struct do player
 typedef struct
 {
     int x, y, score, nivelOxigenio, frameAtual;
@@ -135,12 +123,11 @@ typedef struct
 
 PLAYER player;
 
-// Enzo Capitani: Criação da pessoa afogada
 #define ALTURA_PESSOA 3
 #define LARGURA_PESSOA 3
 #define VELOCIDADE_PESSOA 2
 #define TOTAL_FRAMES_PESSOA 3
-#define VELOCIDADE_ANIMACAO_PESSOA 7 // as velocidades de animação são inversamente proporcionais ao seus defines
+#define VELOCIDADE_ANIMACAO_PESSOA 7
 #define MAX_PESSOAS 2
 #define TICK_PESSOA 3
 
@@ -165,8 +152,6 @@ typedef struct
 
 PESSOAS pessoas[MAX_PESSOAS];
 
-// Enzo Emanoel: Criação do peixe
-
 #define ALTURA_PEIXE 3
 #define LARGURA_PEIXE 6
 #define VEL_X_PEIXE 2
@@ -176,16 +161,14 @@ PESSOAS pessoas[MAX_PESSOAS];
 #define PEIXE_MAX 15
 int TICK_PEIXE;
 
-/*
-    Enzo Emanoel: Sprites iniciais do peixe
-*/
 const char *PEIXE_DIREITA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     {"  _-_ ",
      ">(_<')",
      "  '-' "},
     {"  _-_ ",
      ">(_>')",
-     "  '-' "}};
+     "  '-' "}
+};
 
 const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     {" _-_  ",
@@ -193,9 +176,8 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
      " '-'  "},
     {" _-_  ",
      "('<_)<",
-     " '-'  "}};
-
-// Enzo Emanoel: Criação do tubarão
+     " '-'  "}
+};
 
 #define ALTURA_TUBARAO 3
 #define LARGURA_TUBARAO 11
@@ -206,16 +188,14 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
 #define TUBARAO_MAX 5
 int TICK_TUBARAO;
 
-/*
-    Enzo Emanoel: Sprites iniciais do tubarão
-*/
 const char *TUBARAO_DIREITA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {"\\____)\\____",
      "/-v___ __`ww",
      "     )/     "},
     {"\\____)\\____",
      "/-v___ __`==",
-     "     )/     "}};
+     "     )/     "}
+};
 
 const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {
@@ -227,7 +207,8 @@ const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
         "____/(____/ ",
         "==`__ ___v-\\",
         "    )/      ",
-    }};
+    }
+};
 
 #define ALTURA_INIMIGO 2
 #define LARGURA_INIMIGO 8
@@ -253,7 +234,6 @@ const char *INIMIGO_ESQUERDA[TOTAL_FRAMES_INIMIGO][ALTURA_INIMIGO] = {
     {" |\\_   ",
      "(|__|=\\"}};
 
-// Struct dos peixes
 typedef struct
 {
     int x, y;
@@ -272,7 +252,6 @@ typedef struct
 
 PEIXES peixe[PEIXE_MAX], tubarao[TUBARAO_MAX], inimigo[INIMIGO_MAX];
 
-// Tiro
 #define VEL_TIRO 5
 #define ICON_TIRO '='
 #define MAX_TIRO 20
@@ -308,7 +287,6 @@ typedef struct
 
 MORTO morto[MORTO_MAX];
 
-// Coisas do buffer
 HANDLE hConsole;
 CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
 COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
@@ -809,15 +787,10 @@ void salvarPessoa()
 // ---------------------------------- Spawn de objetos ----------------------------------
 void spawnarPeixes()
 {
-
-    // Chance
-
     if (rand() % 4 != 0)
     {
         return;
     }
-
-    // Cardume
 
     int peixesLivres = 0;
 
@@ -839,14 +812,10 @@ void spawnarPeixes()
         cardume = 3;
     };
 
-    // Constantes
-
     int tamanhoCardumeFinal, alturaBaseFinal, ladoNascerFinal;
 
     int posicaoLivre = 0;
     int tentativas = 0;
-
-    // Verificação de linhas livres
 
     while (tentativas < 5)
     {
@@ -893,8 +862,6 @@ void spawnarPeixes()
     {
         return;
     }
-
-    // Nascimento
 
     int peixesNascidos = 0;
 
@@ -970,22 +937,15 @@ void spawnarPessoa()
 
 void spawnarTubarao()
 {
-
-    // Chance
-
     if (rand() % 4 != 0)
     {
         return;
     }
 
-    // Constantes
-
     int alturaBaseFinal, ladoNascerFinal;
 
     int posicaoLivre = 0;
     int tentativas = 0;
-
-    // Verificação de linhas livres
 
     while (tentativas < 5)
     {
@@ -1030,8 +990,6 @@ void spawnarTubarao()
         return;
     }
 
-    // Nascimento
-
     for (int t = 0; t < TUBARAO_MAX; t++)
     {
         if (!tubarao[t].vivo)
@@ -1072,21 +1030,15 @@ void spawnarTubarao()
 void spawnarInimigo()
 {
 
-    // Chance
-
     if (rand() % 4 != 0)
     {
         return;
     }
 
-    // Constantes
-
     int alturaBaseFinal, ladoNascerFinal;
 
     int posicaoLivre = 0;
     int tentativas = 0;
-
-    // Verificação de linhas livres
 
     while (tentativas < 5)
     {
@@ -1129,8 +1081,6 @@ void spawnarInimigo()
     {
         return;
     }
-
-    // Nascimento
 
     for (int i = 0; i < INIMIGO_MAX; i++)
     {
