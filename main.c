@@ -50,8 +50,7 @@ const WORD PALETA_DE_CORES[] = {
     FOREGROUND_GREEN | FOREGROUND_INTENSITY,
     FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,
     FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
-    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY
-}; const int TOTAL_CORES = 4;
+}; const int TOTAL_CORES = 3;
 
 #define ALTURA_PLAYER 2
 #define LARGURA_PLAYER 9
@@ -61,7 +60,7 @@ const WORD PALETA_DE_CORES[] = {
 #define VELOCIDADE_ANIMACAO_PLAYER 5
 #define NIVEL_MAX_OXIGENIO 1000
 #define TICK_PLAYER 2
-#define TICK_OXIGENIO 3
+#define TICK_OXIGENIO 2
 
 int salvando = 0;
 int morrendo = 0;
@@ -128,8 +127,8 @@ PLAYER player;
 #define VELOCIDADE_PESSOA 2
 #define TOTAL_FRAMES_PESSOA 3
 #define VELOCIDADE_ANIMACAO_PESSOA 7
-#define MAX_PESSOAS 2
-#define TICK_PESSOA 3
+#define MAX_PESSOAS 1
+// #define TICK_PESSOA
 
 const char *PESSOA_SPRITE[TOTAL_FRAMES_PESSOA][ALTURA_PESSOA] = {
     {" O ",
@@ -158,7 +157,7 @@ PESSOAS pessoas[MAX_PESSOAS];
 #define VEL_Y_PEIXE 1
 #define TOTAL_FRAMES_PEIXE 2
 #define VEL_ANIMACAO_PEIXE 15
-#define PEIXE_MAX 15
+#define PEIXE_MAX 3
 int TICK_PEIXE;
 
 const char *PEIXE_DIREITA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
@@ -185,7 +184,7 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
 #define VEL_Y_TUBARAO 1
 #define TOTAL_FRAMES_TUBARAO 2
 #define VEL_ANIMACAO_TUBARAO 15
-#define TUBARAO_MAX 5
+#define TUBARAO_MAX 1
 int TICK_TUBARAO;
 
 const char *TUBARAO_DIREITA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
@@ -216,7 +215,7 @@ const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
 #define VEL_ANIMACAO_INIMIGO 5
 #define VEL_X_INIMIGO 10
 #define INTERVALO_TIRO 86
-#define INIMIGO_MAX 4
+#define INIMIGO_MAX 1
 int TICK_INIMIGO;
 
 const char *INIMIGO_DIREITA[TOTAL_FRAMES_INIMIGO][ALTURA_INIMIGO] = {
@@ -253,6 +252,7 @@ typedef struct
 PEIXES peixe[PEIXE_MAX], tubarao[TUBARAO_MAX], inimigo[INIMIGO_MAX];
 
 #define VEL_TIRO 5
+#define VEL_TIRO_INIMIGO 1
 #define ICON_TIRO '='
 #define MAX_TIRO 20
 #define MAX_TIRO_INIMIGO INIMIGO_MAX
@@ -453,7 +453,7 @@ void desenhaVida()
     char textoVida[15];
     sprintf(textoVida, "Vida: %d", player.vida);
 
-    int inicio = TELA_LARGURA - 15;
+    int inicio = TELA_LARGURA - 25;
     for (int i = 0; textoVida[i] != '\0'; i++)
     {
         consoleBuffer[inicio + i].Char.AsciiChar = textoVida[i];
@@ -631,7 +631,7 @@ void desenhaTiro()
             if (posX < TELA_LARGURA && posX > 0)
             {
                 consoleBuffer[indice].Char.AsciiChar = ICON_TIRO;
-                consoleBuffer[indice].Attributes = FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_BLUE;
+                consoleBuffer[indice].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_BLUE;
             }
         }
     }
@@ -648,7 +648,7 @@ void desenhaTiro()
             if (posX < TELA_LARGURA && posX > 0)
             {
                 consoleBuffer[indice].Char.AsciiChar = ICON_TIRO;
-                consoleBuffer[indice].Attributes = FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE;
+                consoleBuffer[indice].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_BLUE;
             }
         }
     }
@@ -1098,6 +1098,9 @@ void spawnarInimigo()
             inimigo[i].tipo_ataque = 1;
             inimigo[i].intervalo_ataque = INTERVALO_TIRO;
 
+            WORD corInimigo = FOREGROUND_RED | FOREGROUND_GREEN;
+            inimigo[i].cor = corInimigo;
+
             if (ladoNascerFinal)
             {
                 inimigo[i].x = 0 - LARGURA_INIMIGO;
@@ -1214,7 +1217,7 @@ void acaoTiroInimigo()
                 tirosInimigo[i].ativo = 1;
                 tirosInimigo[i].x = (inimigo[ini].dx > 0) ? inimigo[ini].x + POS_TIRO_D : inimigo[ini].x + POS_TIRO_E;
                 tirosInimigo[i].y = inimigo[ini].y + 1;
-                tirosInimigo[i].dx = (inimigo[ini].dx > 0) ? VEL_TIRO : -VEL_TIRO;
+                tirosInimigo[i].dx = (inimigo[ini].dx > 0) ? VEL_TIRO_INIMIGO : -VEL_TIRO_INIMIGO;
 
                 inimigo[ini].intervalo_ataque = INTERVALO_TIRO;
             }
@@ -1439,12 +1442,9 @@ void colisoes()
 
 // ---------------------------------- Sistema de dificuldade ----------------------------------
 
-// TODO: Adicionar morte por vida
-// TODO: Adicionar morte por oxigenio
-
 void aumentarVelEntidades()
 {
-    int dificuldade = player.score / 5000;
+    int dificuldade = player.score / 2000;
 
     if (dificuldade == 0)
     {
@@ -1489,7 +1489,7 @@ void updatePlayer()
 
     if (player.nivelOxigenio == 0)
     {
-        player.vida--;
+        morrendo = 1;
         resetEntidades();
     }
 
@@ -1627,7 +1627,7 @@ void updatePessoa()
 {
     for (int p = 0; p < MAX_PESSOAS; p++)
     {
-        if (relogioGlobal % TICK_PESSOA == 0)
+        if (relogioGlobal % TICK_PEIXE == 0)
         {
             if (pessoas[p].vivo && pessoas[p].lado == 1)
             {
@@ -1667,7 +1667,7 @@ void update()
     {
         desenhaTelaInicial();
         acaoTela(TELA_JOGO);
-        Sleep(400);
+        Sleep(100);
         limparBufferTeclado();
     }
 
@@ -1677,7 +1677,7 @@ void update()
         if (salvando && !morrendo)
         {
             salvarPessoa();
-            Sleep(800);
+            Sleep(400);
         }
 
         if (morrendo)
@@ -1708,7 +1708,7 @@ void update()
     {
         desenhaTelaGameOver();
         acaoTela(TELA_INICIAL);
-        Sleep(400);
+        Sleep(100);
         limparBufferTeclado();
     }
 
