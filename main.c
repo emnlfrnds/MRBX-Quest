@@ -50,7 +50,8 @@ const WORD PALETA_DE_CORES[] = {
     FOREGROUND_GREEN | FOREGROUND_INTENSITY,
     FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,
     FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
-}; const int TOTAL_CORES = 3;
+};
+const int TOTAL_CORES = 3;
 
 #define ALTURA_PLAYER 2
 #define LARGURA_PLAYER 9
@@ -93,8 +94,7 @@ const char *PLAYER_ESQUERDA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
     {
         "  |_     ",
         "([___]=|\\",
-    }
-};
+    }};
 
 const char *PLAYER_DIREITA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
     {
@@ -166,8 +166,7 @@ const char *PEIXE_DIREITA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
      "  '-' "},
     {"  _-_ ",
      ">(_>')",
-     "  '-' "}
-};
+     "  '-' "}};
 
 const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
     {" _-_  ",
@@ -175,8 +174,7 @@ const char *PEIXE_ESQUERDA[TOTAL_FRAMES_PEIXE][ALTURA_PEIXE] = {
      " '-'  "},
     {" _-_  ",
      "('<_)<",
-     " '-'  "}
-};
+     " '-'  "}};
 
 #define ALTURA_TUBARAO 3
 #define LARGURA_TUBARAO 11
@@ -193,8 +191,7 @@ const char *TUBARAO_DIREITA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
      "     )/     "},
     {"\\____)\\____",
      "/-v___ __`==",
-     "     )/     "}
-};
+     "     )/     "}};
 
 const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
     {
@@ -206,8 +203,7 @@ const char *TUBARAO_ESQUERDA[TOTAL_FRAMES_TUBARAO][ALTURA_TUBARAO] = {
         "____/(____/ ",
         "==`__ ___v-\\",
         "    )/      ",
-    }
-};
+    }};
 
 #define ALTURA_INIMIGO 2
 #define LARGURA_INIMIGO 8
@@ -221,7 +217,7 @@ int TICK_INIMIGO;
 const char *INIMIGO_DIREITA[TOTAL_FRAMES_INIMIGO][ALTURA_INIMIGO] = {
     {"   _/| ",
      "\\=|__|)"},
-    {"   _/|",
+    {"   _/| ",
      "-=|__|)"},
     {"   _/| ",
      "/=|__|)"}};
@@ -302,6 +298,7 @@ void mudarTela(int);
 void limparBufferTeclado();
 
 void resetEntidades();
+void resetTiros();
 void reset();
 void iniciar();
 void animacaoDano();
@@ -440,7 +437,7 @@ void desenhaScore()
     char textoScore[30];
     sprintf(textoScore, "Score: %d", player.score);
 
-    int inicio = 5;
+    int inicio = 10;
     for (int i = 0; textoScore[i] != '\0'; i++)
     {
         consoleBuffer[inicio + i].Char.AsciiChar = textoScore[i];
@@ -780,6 +777,7 @@ void salvarPessoa()
     {
         salvando = 0;
         resetEntidades();
+        resetTiros();
         player.nivelOxigenio = 1000;
     }
 }
@@ -1229,6 +1227,7 @@ void levarDano()
 {
     player.vida--;
     resetEntidades();
+    resetTiros();
     player.x = 64 - LARGURA_PLAYER;
     player.y = ALTURA_CEU;
     player.nivelOxigenio = 1000;
@@ -1247,6 +1246,7 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
             player.y < entidade[e].y + ALTURA_PEIXE && entidade[e].vivo == 1)
         {
             resetEntidades();
+            resetTiros();
             morrendo = 1;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -1491,6 +1491,7 @@ void updatePlayer()
     {
         morrendo = 1;
         resetEntidades();
+        resetTiros();
     }
 
     if (player.x < 0)
@@ -1667,7 +1668,7 @@ void update()
     {
         desenhaTelaInicial();
         acaoTela(TELA_JOGO);
-        Sleep(100);
+        Sleep(50);
         limparBufferTeclado();
     }
 
@@ -1708,7 +1709,7 @@ void update()
     {
         desenhaTelaGameOver();
         acaoTela(TELA_INICIAL);
-        Sleep(100);
+        Sleep(50);
         limparBufferTeclado();
     }
 
@@ -1789,8 +1790,6 @@ void iniciar()
 
 void resetEntidades()
 {
-    // PEIXES peixe[PEIXE_MAX], tubarao[TUBARAO_MAX];
-
     for (int i = 0; i < TUBARAO_MAX; i++)
     {
         tubarao[i].vivo = 0;
@@ -1810,9 +1809,19 @@ void resetEntidades()
     }
 }
 
+void resetTiros()
+{
+    for (int t = 0; t < MAX_TIRO; t++)
+    {
+        tiros[t].ativo = 0;
+        tirosInimigo[t].ativo = 0;
+    }
+}
+
 void reset()
 {
     resetEntidades();
+    resetTiros();
     iniciarPlayer();
     iniciarTiros();
     iniciarMorto();
