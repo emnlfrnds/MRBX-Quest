@@ -127,7 +127,7 @@ PLAYER player;
 #define VELOCIDADE_PESSOA 2
 #define TOTAL_FRAMES_PESSOA 3
 #define VELOCIDADE_ANIMACAO_PESSOA 7
-#define MAX_PESSOAS 1
+#define MAX_PESSOAS 10
 // #define TICK_PESSOA
 
 const char *PESSOA_SPRITE[TOTAL_FRAMES_PESSOA][ALTURA_PESSOA] = {
@@ -541,6 +541,7 @@ void desenhaPlayer()
     }
     else
     {
+        PLAYER_SPRITE = PLAYER_MORTO;
         frameAtualPlayer = frameMorte;
     }
 
@@ -1353,22 +1354,7 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
                     pessoas[i].y < peixes[j].y + alturaPx &&
                     pessoas[i].y + ALTURA_PESSOA > peixes[j].y)
                 {
-                    if (peixes[i].tipo == 1 || peixes[i].tipo == 2)
-                    {
-                        pessoas[i].vivo = 0;
-                    }
-                    else
-                    {
-                        if (peixes[i].dx < 0)
-                        {
-                            pessoas[i].x = peixes[j].x - LARGURA_PESSOA;
-                        }
-                        else
-                        {
-                            pessoas[i].x = peixes[j].x + larguraPx;
-                        }
-                    }
-
+                    pessoas[i].vivo = 0;
                     break;
                 }
             }
@@ -1395,18 +1381,17 @@ void colisaoPessoaPlayer()
 
 void animacaoDano()
 {
-
     if (!primeiroFrame)
     {
         frameMorte++;
     }
 
-    if (frameMorte >= 3)
+    if (frameMorte > 2)
     {
         frameMorte = 0;
         morrendo = 0;
         PLAYER_SPRITE = PLAYER_DIREITA;
-        primeiroFrame = 1;
+        primeiroFrame = 0;
         levarDano();
     }
 
