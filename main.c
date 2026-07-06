@@ -1807,6 +1807,12 @@ void resetEntidades()
         inimigo[i].vivo = 0;
         inimigo[i].x = 0;
     }
+    
+    for (int i = 0; i < MAX_PESSOAS; i++)
+    {
+        pessoas[i].vivo = 0;
+        pessoas[i].x = 0;
+    }
 }
 
 void resetTiros()
