@@ -6,9 +6,12 @@
 
 #define TELA_LARGURA 125
 #define TELA_ALTURA 25
+
 #define DELAY 30
+
 #define ALTURA_CEU 4
 #define ALTURA_CHAO 2
+
 #define TELA_INICIAL 0
 #define TELA_JOGO 1
 #define TELA_GAMEOVER 2
@@ -394,6 +397,16 @@ void desenhaTelaInicial()
         consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
     }
 
+    char textoComandos[43];
+    sprintf(textoComandos, "COMANDOS: Space -> Atirar, Setas -> Mover");
+
+    inicio = (ALTURA_LOGO + LOGO_Y + 2) * (TELA_LARGURA) + 42;
+    for (int i = 0; textoComandos[i] != '\0'; i++)
+    {
+        consoleBuffer[inicio + i].Char.AsciiChar = textoComandos[i];
+        consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
+    }
+
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
 }
 
@@ -541,7 +554,7 @@ void desenhaPlayer()
         frameAtualPlayer = (relogioGlobal / VELOCIDADE_ANIMACAO_PLAYER) % TOTAL_FRAMES_JOGADOR;
     }
     else
-    {
+    {   
         PLAYER_SPRITE = PLAYER_MORTO;
         frameAtualPlayer = frameMorte;
     }
@@ -1154,9 +1167,9 @@ void matarEntidade(int posX, int posY)
 
 // ---------------------------------- Métodos de ações ----------------------------------
 
-void acaoTela(int tela)
+void acaoTela(int tela, int tecla)
 {
-    if (GetAsyncKeyState(VK_CONTROL))
+    if (GetAsyncKeyState(tecla))
     {
         mudarTela(tela);
         iniciar();
@@ -1674,7 +1687,7 @@ void update()
     if (telaAtual == TELA_INICIAL)
     {
         desenhaTelaInicial();
-        acaoTela(TELA_JOGO);
+        acaoTela(TELA_JOGO, VK_CONTROL);
         Sleep(50);
         limparBufferTeclado();
     }
@@ -1689,8 +1702,7 @@ void update()
         }
 
         if (morrendo)
-        {
-            PLAYER_SPRITE = PLAYER_MORTO;
+        { 
             animacaoDano();
         }
 
@@ -1709,13 +1721,14 @@ void update()
             updateMorto();
         }
 
+        acaoTela(TELA_INICIAL, VK_ESCAPE);
         desenhaTela();
     }
 
     if (telaAtual == TELA_GAMEOVER)
     {
         desenhaTelaGameOver();
-        acaoTela(TELA_INICIAL);
+        acaoTela(TELA_INICIAL, VK_CONTROL);
         Sleep(50);
         limparBufferTeclado();
     }
