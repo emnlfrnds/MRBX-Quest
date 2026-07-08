@@ -38,6 +38,7 @@
 #define TOTAL_FRAMES_JOGADOR 3
 #define VELOCIDADE_ANIMACAO_PLAYER 5
 #define NIVEL_MAX_OXIGENIO 1000
+#define NUMERO_AUMENTA_VIDA 10000
 #define TICK_PLAYER 2
 #define TICK_OXIGENIO 2
 
@@ -92,7 +93,7 @@
 typedef struct
 {
     int x, y, score, nivelOxigenio, frameAtual;
-    int vida, respirando, pessoasSalvas;
+    int vida, respirando, pessoasSalvas, numVida;
     WORD cor;
 } PLAYER;
 
@@ -177,6 +178,21 @@ const WORD PALETA_DE_CORES[] = {
     FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
 }; const int TOTAL_CORES = 3;
 
+const char *PLAYER_MORTO[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
+    {
+        "  --__-- ",
+        "  --  -- ",
+    },
+    {
+        " -  _  -",
+        " -     -",
+    },
+    {
+        "        ",
+        "        ",
+    },
+};
+
 const char *PLAYER_ESQUERDA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
     {
         "  |_     ",
@@ -207,21 +223,6 @@ const char *PLAYER_DIREITA[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
 };
 
 const char *(*PLAYER_SPRITE)[ALTURA_PLAYER] = PLAYER_DIREITA;
-
-const char *PLAYER_MORTO[TOTAL_FRAMES_JOGADOR][ALTURA_PLAYER] = {
-    {
-        "  --__-- ",
-        "  --  -- ",
-    },
-    {
-        " -  _  -",
-        " -     -",
-    },
-    {
-        "        ",
-        "        ",
-    },
-};
 
 const char *PESSOA_SPRITE[TOTAL_FRAMES_PESSOA][ALTURA_PESSOA] = {
     {" O ",
@@ -1258,7 +1259,22 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
                     pessoas[i].y < peixes[j].y + alturaPx &&
                     pessoas[i].y + ALTURA_PESSOA > peixes[j].y)
                 {
-                    pessoas[i].vivo = 0;
+                    if (peixes[j].tipo > 0)
+                    {
+                        pessoas[i].vivo = 0;
+                    }
+                    else
+                    {
+                        if (peixes[j].dx < 0)
+                        {
+                            pessoas[i].x = peixes[j].x - LARGURA_PESSOA;
+                        }
+                        else
+                        {
+                            pessoas[i].x = peixes[j].x + larguraPx;
+                        }
+                    }
+
                     break;
                 }
             }
@@ -1483,9 +1499,16 @@ void spawnarPessoa()
         pessoas[indice].x = TELA_LARGURA + LARGURA_PESSOA;
     }
 
-    pessoas[indice].y = (rand() % (21 - 8)) + 8;
+    if (player.pessoasSalvas >= 5 && player.respirando)
+    {
+        salvando = 1;
+    }
 
-    pessoas[indice].vivo = 1;
+    if (player.score == player.numVida && player.score > 0 && player.vida < 10)
+    {
+        player.vida += 1;
+        player.numVida += NUMERO_AUMENTA_VIDA;
+    }
 }
 
 void spawnarPeixes()
@@ -1813,6 +1836,7 @@ void iniciarPlayer()
     player.y = ALTURA_CEU;
     player.nivelOxigenio = 1000;
     player.vida = 5;
+    player.numVida = NUMERO_AUMENTA_VIDA;
     player.score = 0;
     player.respirando = 0;
     player.pessoasSalvas = 0;
@@ -1870,6 +1894,11 @@ void reset()
     resetEntidades();
     resetTiros();
     iniciarPlayer();
+    iniciarEntidade(peixe, PEIXE_MAX, 0, 0);
+
+    iniciarEntidade(tubarao, TUBARAO_MAX, 0, 1);
+    iniciarEntidade(inimigo, INIMIGO_MAX, 1, 2);
+
     iniciarTiros();
     iniciarMorto();
 }
