@@ -1489,16 +1489,6 @@ void mudarTela(int tela)
 // SISTEMA DE SPAWN E GERENCIAMENTO
 // ============================================================================
 
-void mudarTela(int tela)
-{
-    telaAtual = tela;
-    reset();
-}
-
-// ============================================================================
-// SISTEMA DE SPAWN E GERENCIAMENTO
-// ============================================================================
-
 void gerenciarSpawns()
 {
     int sorteio = rand() % 100;
