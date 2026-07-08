@@ -1354,19 +1354,19 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
                     pessoas[i].y < peixes[j].y + alturaPx &&
                     pessoas[i].y + ALTURA_PESSOA > peixes[j].y)
                 {
-                    if (peixes[i].tipo == 1 || peixes[i].tipo == 2)
+                    if (peixes[j].tipo > 0)
                     {
                         pessoas[i].vivo = 0;
                     }
                     else
                     {
-                        if (peixes[i].dx < 0)
+                        if (peixes[j].dx < 0)
                         {
                             pessoas[i].x = peixes[j].x - LARGURA_PESSOA;
                         }
                         else
                         {
-                            pessoas[i].x = peixes[j].x + larguraPx;
+                            pessoas[i].x = peixes[j].x + larguraPx + 1;
                         }
                     }
 
@@ -1787,8 +1787,10 @@ void iniciar()
 {
     iniciarPlayer();
     iniciarEntidade(peixe, PEIXE_MAX, 0, 0);
+
     iniciarEntidade(tubarao, TUBARAO_MAX, 0, 1);
     iniciarEntidade(inimigo, INIMIGO_MAX, 1, 2);
+
     iniciarTiros();
     iniciarMorto();
     iniciarPessoas();
