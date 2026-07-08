@@ -60,6 +60,7 @@ const int TOTAL_CORES = 3;
 #define TOTAL_FRAMES_JOGADOR 3
 #define VELOCIDADE_ANIMACAO_PLAYER 5
 #define NIVEL_MAX_OXIGENIO 1000
+#define NUMERO_AUMENTA_VIDA 10000
 #define TICK_PLAYER 2
 #define TICK_OXIGENIO 2
 
@@ -116,7 +117,7 @@ const char *(*PLAYER_SPRITE)[ALTURA_PLAYER] = PLAYER_DIREITA;
 typedef struct
 {
     int x, y, score, nivelOxigenio, frameAtual;
-    int vida, respirando, pessoasSalvas;
+    int vida, respirando, pessoasSalvas, numVida;
     WORD cor;
 } PLAYER;
 
@@ -773,7 +774,7 @@ void salvarPessoa()
 {
     player.pessoasSalvas--;
     player.score += 250;
-
+     
     if (player.pessoasSalvas <= 0)
     {
         salvando = 0;
@@ -1354,7 +1355,22 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
                     pessoas[i].y < peixes[j].y + alturaPx &&
                     pessoas[i].y + ALTURA_PESSOA > peixes[j].y)
                 {
-                    pessoas[i].vivo = 0;
+                    if (peixes[j].tipo > 0)
+                    {
+                        pessoas[i].vivo = 0;
+                    }
+                    else
+                    {
+                        if (peixes[j].dx < 0)
+                        {
+                            pessoas[i].x = peixes[j].x - LARGURA_PESSOA;
+                        }
+                        else
+                        {
+                            pessoas[i].x = peixes[j].x + larguraPx;
+                        }
+                    }
+
                     break;
                 }
             }
@@ -1522,6 +1538,11 @@ void updatePlayer()
     {
         salvando = 1;
     }
+    if (player.score == player.numVida && player.score > 0 && player.vida < 10)
+    {
+        player.vida += 1;
+        player.numVida += NUMERO_AUMENTA_VIDA;
+    }
 }
 
 void updateTiro()
@@ -1648,7 +1669,8 @@ void updateMorto()
 }
 
 void update()
-{
+{   
+    int relogioAtual = relogioGlobal;
     if (telaAtual == TELA_INICIAL)
     {
         desenhaTelaInicial();
@@ -1708,6 +1730,7 @@ void iniciarPlayer()
     player.y = ALTURA_CEU;
     player.nivelOxigenio = 1000;
     player.vida = 5;
+    player.numVida = NUMERO_AUMENTA_VIDA;
     player.score = 0;
     player.respirando = 0;
     player.pessoasSalvas = 0;
@@ -1764,8 +1787,10 @@ void iniciar()
 {
     iniciarPlayer();
     iniciarEntidade(peixe, PEIXE_MAX, 0, 0);
+
     iniciarEntidade(tubarao, TUBARAO_MAX, 0, 1);
     iniciarEntidade(inimigo, INIMIGO_MAX, 1, 2);
+
     iniciarTiros();
     iniciarMorto();
     iniciarPessoas();
