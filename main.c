@@ -1543,21 +1543,24 @@ void spawnarPessoa()
 
     if (rand() % 2 == 0)
     {
-        pessoas[indice].lado = 0; // 0 -> nasce à esquerda e vai para a direita
-        pessoas[indice].x = 0 - LARGURA_PESSOA;
+        pessoas[indice].lado = 0 - LARGURA_PESSOA;
+        pessoas[indice].x = 0;
     }
     else
     {
-        pessoas[indice].lado = 1; // 1 -> nasce à direita e vai para a esquerda
+        pessoas[indice].lado = 1;
         pessoas[indice].x = TELA_LARGURA + LARGURA_PESSOA;
     }
-
-    pessoas[indice].vivo = 1;
-    pessoas[indice].y = TELA_ALTURA - ALTURA_PESSOA - ALTURA_CHAO; // posiciona próximo ao chão
 
     if (player.pessoasSalvas >= 5 && player.respirando)
     {
         salvando = 1;
+    }
+
+    if (player.score == player.numVida && player.score > 0 && player.vida < 10)
+    {
+        player.vida += 1;
+        player.numVida += NUMERO_AUMENTA_VIDA;
     }
 }
 
