@@ -2,11 +2,19 @@
 // INCLUDES
 // ============================================================================
 
+// ============================================================================
+// INCLUDES
+// ============================================================================
+
 #include <stdio.h>
 #include <windows.h>
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
+
+// ============================================================================
+// MACROS E CONSTANTES (#define)
+// ============================================================================
 
 // ============================================================================
 // MACROS E CONSTANTES (#define)
@@ -373,6 +381,8 @@ void resetTiros();
 void reset();
 void limparBufferTeclado();
 void mudarTela(int tela);
+void limparBufferTeclado();
+void mudarTela(int tela);
 
 // ============================================================================
 // MAIN
@@ -408,6 +418,8 @@ void update()
 
     if (telaAtual == TELA_JOGO)
     {
+
+        if (salvando && !morrendo)
 
         if (salvando && !morrendo)
         {
@@ -1462,6 +1474,26 @@ void acaoTela(int tela, int tecla)
 {
     if (GetAsyncKeyState(tecla))
     {
+        mudarTela(tela);
+        iniciar();
+    }
+}
+
+void mudarTela(int tela)
+{
+    telaAtual = tela;
+    reset();
+}
+
+// ============================================================================
+// SISTEMA DE SPAWN E GERENCIAMENTO
+// ============================================================================
+
+void gerenciarSpawns()
+{
+    int sorteio = rand() % 100;
+
+    if (sorteio < 10)
         mudarTela(tela);
         iniciar();
     }
