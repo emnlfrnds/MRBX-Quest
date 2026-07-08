@@ -394,6 +394,7 @@ int main(int argc, char *argv[])
 
 void update()
 {
+    int relogioAtual = relogioGlobal;
     if (telaAtual == TELA_INICIAL)
     {
         desenhaTelaInicial();
@@ -909,6 +910,12 @@ void updatePlayer()
     if (player.pessoasSalvas >= 5 && player.respirando)
     {
         salvando = 1;
+    }
+
+    if (player.score == player.numVida && player.score > 0 && player.vida < 10)
+    {
+        player.vida += 1;
+        player.numVida += NUMERO_AUMENTA_VIDA;
     }
 }
 
