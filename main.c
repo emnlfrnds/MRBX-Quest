@@ -3,12 +3,15 @@
 // ============================================================================
 
 #include <stdio.h>
-#include <windows.h>
-#include <conio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <mmsystem.h>
-
+#ifdef _WIN32
+    #include <windows.h>
+    #include <mmsystem.h>
+#else
+    #include <unistd.h>
+    #include <termios.h>
+#endif
 // ============================================================================
 // MACROS E CONSTANTES (#define)
 // ============================================================================
@@ -90,9 +93,29 @@
 #define ALTURA_MORTO 3
 #define LARGURA_MORTO 3
 
+#ifndef _WIN32
+    typedef unsigned short WORD;
+
+    #define FOREGROUND_BLUE      0X0001
+    #define FOREGROUND_GREEN     0X0002
+    #define FOREGROUND_RED       0X0004
+    #define FOREGROUND_INTENSITY 0X0008
+    #define BACKGROUND_BLUE      0X0010
+    #define BACKGROUND_GREEN     0X0020
+    #define BACKGROUND_RED       0X0040
+    #define BACKGROUND_INTENSITY 0X0080
+#endif
+
 // ============================================================================
 // STRUCTS
 // ============================================================================
+
+typedef struct {
+    char caractere;
+    short atributos;
+} CelulaTela;
+
+CelulaTela telaMatriz[TELA_ALTURA][TELA_LARGURA];
 
 typedef struct
 {
