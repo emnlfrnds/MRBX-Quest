@@ -344,6 +344,10 @@ int telaAtual = TELA_INICIAL;
 // PROTÓTIPOS DE FUNÇÕES
 // ============================================================================
 
+#ifndef _WIN32
+void traduzAtributosAnsi(short atributos, int* ansiTexto, int* ansiFundo);
+#endif
+void flushTela();
 void desenhaTelaInicial();
 void desenhaTelaGameOver();
 void desenhaScore();
@@ -536,7 +540,68 @@ void desenhaTela()
     desenhaTiro();
     desenhaMorto();
 
+    flushTela();
+}
+
+#ifndef _WIN32
+// Função auxiliar APENAS PARA UNIX: Converte os bits do Windows para códigos ANSI
+void traduzirAtributosParaAnsi(short atributos, int* ansiTexto, int* ansiFundo) {
+    // Extraindo apenas os bits de texto (0 a 15)
+    int fg = atributos & 0x0F;
+    // Extraindo apenas os bits de fundo (deslocando 4 bits para a direita)
+    int bg = (atributos & 0xF0) >> 4;
+
+    // Tabela de conversão simples (Windows -> ANSI)
+    // Cores: Preto(0), Azul(1), Verde(2), Ciano(3), Vermelho(4), Magenta(5), Amarelo(6), Branco(7)
+    int mapaAnsi[8] = {0, 4, 2, 6, 1, 5, 3, 7}; // Mapeamento básico de cores
+
+    int fgCorBase = fg & 0x07; // Pega só a cor sem a intensidade
+    int bgCorBase = bg & 0x07;
+
+    *ansiTexto = 30 + mapaAnsi[fgCorBase];
+    *ansiFundo = 40 + mapaAnsi[bgCorBase];
+
+    // Trata a intensidade (clareia a cor)
+    if (fg & FOREGROUND_INTENSITY) *ansiTexto += 60;
+    if (bg & BACKGROUND_INTENSITY) *ansiFundo += 60;
+}
+#endif
+
+void flushTela() {
+    #ifdef _WIN32
+    for (int y = 0; y < TELA_ALTURA; y++) {
+        for (int x = 0; x < TELA_LARGURA; x++) {
+            int i = y * TELA_LARGURA + x;
+            consoleBuffer[i].Char.AsciiChar = telaMatriz[y][x].caractere;
+            consoleBuffer[i].Attributes = telaMatriz[y][x].atributos;
+        }
+    }
     WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    #else
+    // UNIX: Converte a matriz para texto ANSI e joga no terminal
+    printf("\033[H"); // Retorna cursor pro topo (0,0)
+    
+    int textoAtual = -1, fundoAtual = -1;
+
+    for (int y = 0; y < TELA_ALTURA; y++) {
+        for (int x = 0; x < TELA_LARGURA; x++) {
+            int ansiTexto, ansiFundo;
+            traduzirAtributosParaAnsi(telaMatriz[y][x].atributos, &ansiTexto, &ansiFundo);
+            
+            // Só imprime o código de cor se ela mudou, economiza processamento
+            if (ansiTexto != textoAtual || ansiFundo != fundoAtual) {
+                printf("\033[%d;%dm", ansiTexto, ansiFundo);
+                textoAtual = ansiTexto;
+                fundoAtual = ansiFundo;
+            }
+            
+            putchar(telaMatriz[y][x].caractere);
+        }
+        printf("\033[0m\n"); // Reseta a cor no fim da linha e pula
+        textoAtual = -1; // Força re-aplicar as cores na linha seguinte
+    }
+    fflush(stdout);
+    #endif
 }
 
 void desenhaMapa()
