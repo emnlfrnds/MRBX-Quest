@@ -7,6 +7,7 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <mmsystem.h>
 
 // ============================================================================
 // MACROS E CONSTANTES (#define)
@@ -334,6 +335,7 @@ void desenhaPessoa();
 void desenhaMorto();
 void desenhaMapa();
 void desenhaTela();
+void iniciarSons();
 void salvarPessoa();
 void spawnarPessoa();
 void spawnarPeixes();
@@ -400,6 +402,7 @@ void update()
     int relogioAtual = relogioGlobal;
     if (telaAtual == TELA_INICIAL)
     {
+    
         desenhaTelaInicial();
         acaoTela(TELA_JOGO, VK_CONTROL);
         Sleep(50);
@@ -408,6 +411,15 @@ void update()
 
     if (telaAtual == TELA_JOGO)
     {
+        char statusJogo[35];
+
+        mciSendString("status Jogo mode", statusJogo, sizeof(statusJogo), NULL);
+
+        if(strcmp(statusJogo, "playing") != 0)
+        {
+            mciSendString("seek Jogo to start", NULL, 0, NULL);
+            mciSendString("play Jogo", NULL, 0, NULL);
+        }
         if (salvando && !morrendo)
         {
             salvarPessoa();
@@ -438,17 +450,49 @@ void update()
         acaoTela(TELA_INICIAL, VK_ESCAPE);
         desenhaTela();
     }
+    else{
+        mciSendString("stop Jogo", NULL, 0, NULL);
+    }
 
     if (telaAtual == TELA_GAMEOVER)
     {
+        char statusGameOver[35];
+
+        mciSendString("status Gameover mode", statusGameOver, sizeof(statusGameOver), NULL);
+
+        if(strcmp(statusGameOver, "playing") != 0)
+        {
+            mciSendString("seek Gameover to start", NULL, 0, NULL);
+            mciSendString("play Gameover", NULL, 0, NULL);
+        }
         desenhaTelaGameOver();
         acaoTela(TELA_INICIAL, VK_CONTROL);
         Sleep(50);
         limparBufferTeclado();
     }
+    else{
+        mciSendString("stop Gameover", NULL, 0, NULL);
+    }
 
     relogioGlobal++;
 }
+//==============================================================================
+// INICILIZAÇÃO DE SONS
+//==============================================================================
+
+void iniciarSons(){
+    mciSendString("open sons/tiro.wav type mpegvideo alias Tiro", NULL, 0, NULL);
+    mciSendString("open sons/peixeehumanomorto.wav type mpegvideo alias MorteEntidade", NULL, 0, NULL);
+    mciSendString("open sons/dano.wav type mpegvideo alias Dano", NULL, 0, NULL);
+    mciSendString("open sons/respirando1.mp3 type mpegvideo alias Respirando", NULL, 0, NULL);
+    mciSendString("open sons/resgate.wav type mpegvideo alias Resgatando", NULL, 0, NULL);
+    mciSendString("open sons/Alerta1.mp3 type mpegvideo alias Alerta", NULL, 0, NULL); 
+    mciSendString("open sons/salvando.wav type mpegvideo alias Salvando", NULL, 0, NULL);
+    mciSendString("open sons/fundo.mp3 type mpegvideo alias Jogo", NULL, 0, NULL);
+    mciSendString("open sons/gameover.mp3 type mpegvideo alias Gameover", NULL, 0, NULL);
+    
+}
+
 
 // ============================================================================
 // RENDERIZAÇÃO E DESENHOS
@@ -609,6 +653,11 @@ void desenhaBarraOxigenio()
     if (frameAtual == 0 && player.nivelOxigenio < 250)
     {
         corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED;
+    }
+    if (player.nivelOxigenio < 250 && player.respirando == 0 && telaAtual == TELA_JOGO){
+        mciSendString("play Alerta repeat", NULL, 0, NULL);
+    }else{
+        mciSendString("stop Alerta", NULL, 0, NULL);
     }
 
     char barras[25];
@@ -906,11 +955,22 @@ void updatePlayer()
 
     if (player.y < ALTURA_CEU && relogioGlobal % TICK_OXIGENIO == 0)
     {
+        char status[35];
+
+        mciSendString("status Respirando mode", status, sizeof(status), NULL);
+
+        if(strcmp(status, "playing") != 0 && player.nivelOxigenio < 1000)
+        {
+            mciSendString("seek Respirando to start", NULL, 0, NULL);
+            mciSendString("play Respirando", NULL, 0, NULL);
+        }
+
         player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
     }
     else if (relogioGlobal % TICK_OXIGENIO == 0)
     {
+        mciSendString("stop Respirando", NULL, 0, NULL);
         player.respirando = 0;
         player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
     }
@@ -1198,6 +1258,7 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
         {
             resetEntidades();
             resetTiros();
+            mciSendString("play Dano from 0", NULL, 0, NULL);
             morrendo = 1;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -1219,6 +1280,7 @@ void colisaoPlayerTiro(TIRO tiro[], int tiro_MAX)
         {
             morrendo = 1;
             tiro[t].ativo = 0;
+            mciSendString("play Dano from 0", NULL, 0, NULL);
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
             break;
@@ -1243,6 +1305,7 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                         tiro[t].ativo = 0;
                         if (isPlayer && entidade[e].vida <= 0)
                         {
+                            mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
                             player.score += 50;
                         }
 
@@ -1275,6 +1338,7 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
                     if (peixes[j].tipo > 0)
                     {
                         pessoas[i].vivo = 0;
+                        mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
                     }
                     else
                     {
@@ -1305,6 +1369,7 @@ void colisaoPessoaPlayer()
             player.y < pessoas[i].y + ALTURA_PESSOA && pessoas[i].vivo == 1)
         {
             pessoas[i].vivo = 0;
+            mciSendString("play Resgatando from 0", NULL, 0, NULL);
 
             if (player.pessoasSalvas < 5)
                 player.pessoasSalvas++;
@@ -1338,6 +1403,7 @@ void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entid
 
             if (checkColisaoEntidades(entidade1[e1], entidade2[e2]))
             {
+                mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
                 entidade2[e2].vivo = 0;
             }
         }
@@ -1382,6 +1448,7 @@ void acaoTiro()
                 tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x + POS_TIRO_D : player.x + POS_TIRO_E;
                 tiros[i].y = player.y + 1;
                 tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
+                mciSendString("play Tiro from 0", NULL, 0, NULL);
 
                 break;
             }
@@ -1403,6 +1470,7 @@ void acaoTiroInimigo()
                 tirosInimigo[i].x = (inimigo[ini].dx > 0) ? inimigo[ini].x + POS_TIRO_D : inimigo[ini].x + POS_TIRO_E;
                 tirosInimigo[i].y = inimigo[ini].y + 1;
                 tirosInimigo[i].dx = (inimigo[ini].dx > 0) ? VEL_TIRO_INIMIGO : -VEL_TIRO_INIMIGO;
+                mciSendString("play Tiro from 0", NULL, 0, NULL);
 
                 inimigo[ini].intervalo_ataque = INTERVALO_TIRO;
             }
@@ -1438,6 +1506,8 @@ void matarEntidade(int posX, int posY)
 
 void salvarPessoa()
 {
+    mciSendString("stop Respirando", NULL, 0, NULL);
+    mciSendString("play Salvando from 0", NULL, 0, NULL);
     player.pessoasSalvas--;
     player.score += 250;
 
@@ -1889,6 +1959,7 @@ void iniciar()
     iniciarEntidade(tubarao, TUBARAO_MAX, 0, 1);
     iniciarEntidade(inimigo, INIMIGO_MAX, 1, 2);
     iniciarTiros();
+    iniciarSons();
     iniciarMorto();
     iniciarPessoas();
 }
