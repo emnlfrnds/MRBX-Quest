@@ -512,6 +512,7 @@ void update()
 
     relogioGlobal++;
 }
+
 //==============================================================================
 // INICILIZAÇÃO DE SONS
 //==============================================================================
@@ -526,9 +527,7 @@ void iniciarSons(){
     mciSendString("open sons/salvando.wav type mpegvideo alias Salvando", NULL, 0, NULL);
     mciSendString("open sons/fundo.mp3 type mpegvideo alias Jogo", NULL, 0, NULL);
     mciSendString("open sons/gameover.mp3 type mpegvideo alias Gameover", NULL, 0, NULL);
-    
 }
-
 
 // ============================================================================
 // RENDERIZAÇÃO E DESENHOS
