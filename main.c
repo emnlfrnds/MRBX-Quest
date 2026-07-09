@@ -95,7 +95,7 @@
 
 #ifndef _WIN32
     typedef unsigned short WORD;
-
+    
     #define FOREGROUND_BLUE      0X0001
     #define FOREGROUND_GREEN     0X0002
     #define FOREGROUND_RED       0X0004
@@ -104,6 +104,14 @@
     #define BACKGROUND_GREEN     0X0020
     #define BACKGROUND_RED       0X0040
     #define BACKGROUND_INTENSITY 0X0080
+#endif
+
+#ifdef _WIN32
+    HANDLE hConsole;
+    CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
+    COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
+    COORD bufferCoord = {0, 0};
+    SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA - 1, TELA_ALTURA - 1};
 #endif
 
 // ============================================================================
@@ -322,12 +330,6 @@ const char *ICON_MORTO[ALTURA_MORTO] = {
 // ============================================================================
 // VARIÁVEIS GLOBAIS
 // ============================================================================
-
-HANDLE hConsole;
-CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
-COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
-COORD bufferCoord = {0, 0};
-SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA - 1, TELA_ALTURA - 1};
 
 int salvando = 0;
 int morrendo = 0;
