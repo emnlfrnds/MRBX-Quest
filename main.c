@@ -44,14 +44,14 @@
 #define NIVEL_MAX_OXIGENIO 1000
 #define NUMERO_AUMENTA_VIDA 10000
 #define TICK_PLAYER 2
-#define TICK_OXIGENIO 2
+#define TICK_OXIGENIO 3
 
 #define ALTURA_PESSOA 3
 #define LARGURA_PESSOA 3
 #define VELOCIDADE_PESSOA 2
 #define TOTAL_FRAMES_PESSOA 3
 #define VELOCIDADE_ANIMACAO_PESSOA 7
-#define MAX_PESSOAS 10
+#define MAX_PESSOAS 3
 // #define TICK_PESSOA
 
 #define ALTURA_PEIXE 3
@@ -996,16 +996,9 @@ void updatePessoa()
 {
     for (int p = 0; p < MAX_PESSOAS; p++)
     {
-        if (relogioGlobal % TICK_PEIXE == 0)
+        if (pessoas[p].vivo && relogioGlobal % TICK_PEIXE == 0)
         {
-            if (pessoas[p].vivo && pessoas[p].lado == 1)
-            {
-                pessoas[p].x--;
-            }
-            else if (pessoas[p].vivo)
-            {
-                pessoas[p].x++;
-            }
+            pessoas[p].x += (pessoas[p].lado == 1) ? 1 : -1;
         }
 
         if (pessoas[p].x > TELA_LARGURA + LARGURA_PESSOA || pessoas[p].x < -LARGURA_PESSOA)
@@ -1568,29 +1561,76 @@ void gerenciarSpawns()
 
 void spawnarPessoa()
 {
-    if (rand() % 60 != 0)
+    if (rand() % 10 != 0)
     {
         return;
     }
 
-    int indice = rand() % MAX_PESSOAS;
+    int alturaBaseFinal, ladoNascerFinal;
 
-    if (pessoas[indice].vivo)
+    int posicaoLivre = 0;
+    int tentativas = 0;
+
+    while (tentativas < 5)
+    {
+
+        int alturaMin = 16;
+        int alturaMax = TELA_ALTURA - 3 - ALTURA_PESSOA;
+        if (alturaMax < alturaMin) { alturaMax = alturaMin; }
+
+        int alturaBase = alturaMin + (rand() % (alturaMax - alturaMin + 1));
+        
+        int ladoNascer = (rand() % 2 == 0);
+
+        posicaoLivre = 1;
+
+        for (int p = 0; p < MAX_PESSOAS; p++)
+        {
+            if (pessoas[p].vivo) {
+                if (abs(alturaBase - pessoas[p].y) < (ALTURA_PESSOA + 1))
+                {
+                    posicaoLivre = 0;
+                    break;
+                }
+            }
+        }
+
+        if (posicaoLivre == 1)
+        {
+            alturaBaseFinal = alturaBase;
+            ladoNascerFinal = ladoNascer;
+            break;
+        }
+
+        tentativas++;
+    }
+
+    if (posicaoLivre == 0)
+    {
         return;
-
-    if (rand() % 2 == 0)
-    {
-        pessoas[indice].lado = 0;
-        pessoas[indice].x = 0;
-    }
-    else
-    {
-        pessoas[indice].lado = 1;
-        pessoas[indice].x = TELA_LARGURA + LARGURA_PESSOA;
     }
 
-    pessoas[indice].vivo = 1;
-    pessoas[indice].y = ALTURA_CEU + 1 + (rand() % (TELA_ALTURA - ALTURA_CHAO - ALTURA_CEU - 2));
+    for (int p = 0; p < MAX_PESSOAS; p++)
+    {
+        if (!pessoas[p].vivo)
+        {
+            pessoas[p].vivo = 1;
+            pessoas[p].y = alturaBaseFinal;
+
+            if (ladoNascerFinal)
+            {
+                pessoas[p].lado = 1;
+                pessoas[p].x = 0 - LARGURA_PESSOA;
+            }
+            else
+            {
+                pessoas[p].lado = 0;
+                pessoas[p].x = TELA_LARGURA - LARGURA_PESSOA;
+            }
+
+            break;
+        }
+    }
 
     if (player.pessoasSalvas >= 5 && player.respirando)
     {
