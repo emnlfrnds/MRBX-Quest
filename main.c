@@ -135,7 +135,62 @@
     #define TECLA_ESC 27
     #define TECLA_C 'c'
 
-    int tecla_pressionada(int tecla);
+    struct termios terminalOriginal;
+    int teclasDoFrame[256]; // Array que guarda o que foi apertado no frame atual
+
+    void restaurarTerminalUnix() {
+        // Devolve o terminal ao normal quando o jogo fechar
+        tcsetattr(STDIN_FILENO, TCSANOW, &terminalOriginal);
+    }
+
+    void configurarTerminalUnix() {
+        struct termios terminalNovo;
+        tcgetattr(STDIN_FILENO, &terminalOriginal);
+        terminalNovo = terminalOriginal;
+        
+        // Desliga o modo que espera o Enter e o "eco" na tela
+        terminalNovo.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &terminalNovo);
+        
+        // Torna a leitura "não-bloqueante" (não trava o jogo)
+        int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+        fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+        
+        // Garante que o terminal não fique bugado se o jogo crashar
+        atexit(restaurarTerminalUnix);
+    }
+
+    void capturarTeclasUnix() {
+        // Limpa as teclas do frame passado
+        for (int i = 0; i < 256; i++) teclasDoFrame[i] = 0;
+
+        unsigned char ch;
+        // Lê tudo o que está na fila do teclado instantaneamente
+        while (read(STDIN_FILENO, &ch, 1) > 0) {
+            if (ch == 27) { // 27 é o ESC. Pode ser um ESC ou o início de uma seta
+                unsigned char seq[2];
+                // Tenta ler o resto do combo da seta
+                if (read(STDIN_FILENO, &seq[0], 1) > 0 && read(STDIN_FILENO, &seq[1], 1) > 0) {
+                    if (seq[0] == '[') {
+                        if (seq[1] == 'A') teclasDoFrame[TECLA_CIMA] = 1;
+                        if (seq[1] == 'B') teclasDoFrame[TECLA_BAIXO] = 1;
+                        if (seq[1] == 'C') teclasDoFrame[TECLA_DIREITA] = 1;
+                        if (seq[1] == 'D') teclasDoFrame[TECLA_ESQUERDA] = 1;
+                    }
+                } else {
+                    teclasDoFrame[TECLA_ESC] = 1; // Foi apenas a tecla ESC mesmo
+                }
+            } else {
+                if (ch >= 'a' && ch <= 'z') ch -= 32; // Normaliza minúsculas para maiúsculas
+                teclasDoFrame[ch] = 1;
+            }
+        }
+    }
+
+    // Nossa função genérica, igual no Windows!
+    int tecla_pressionada(int tecla) {
+        return teclasDoFrame[tecla];
+    }
 #endif
 
 // ============================================================================
@@ -445,6 +500,10 @@ int main(int argc, char *argv[])
 
     while (1)
     {
+        #ifndef _WIN32
+            capturarTeclasUnix();
+        #endif
+
         update();
 
         #ifdef _WIN32
@@ -2095,6 +2154,9 @@ void spawnarInimigo()
 
 void iniciar()
 {
+    #ifndef _WIN32
+        configurarTerminalUnix();
+    #endif
     iniciarPlayer();
     iniciarEntidade(peixe, PEIXE_MAX, 0, 0);
     iniciarEntidade(tubarao, TUBARAO_MAX, 0, 1);
