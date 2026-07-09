@@ -112,6 +112,30 @@
     COORD bufferSize = {TELA_LARGURA, TELA_ALTURA};
     COORD bufferCoord = {0, 0};
     SMALL_RECT consoleWriteArea = {0, 0, TELA_LARGURA - 1, TELA_ALTURA - 1};
+
+    #define TECLA_DIREITA VK_RIGHT
+    #define TECLA_ESQUERDA VK_LEFT
+    #define TECLA_CIMA VK_UP
+    #define TECLA_BAIXO VK_DOWN
+    #define TECLA_ESPACO VK_SPACE
+    #define TECLA_ESC VK_ESCAPE
+    #define TECLA_C 'C'
+
+    int tecla_pressionada(int tecla) {
+        return (GetAsyncKeyState(tecla) & 0x8000) != 0;
+    }
+#else
+    #define PAUSAR(ms) usleep((ms) * 1000)
+
+    #define TECLA_DIREITA 1001
+    #define TECLA_ESQUERDA 1002
+    #define TECLA_CIMA 1003
+    #define TECLA_BAIXO 1004
+    #define TECLA_ESPACO ' '
+    #define TECLA_ESC 27
+    #define TECLA_C 'c'
+
+    int tecla_pressionada(int tecla);
 #endif
 
 // ============================================================================
@@ -426,7 +450,7 @@ int main(int argc, char *argv[])
         #ifdef _WIN32
             Sleep(DELAY);
         #else
-            usleep(DELAY * 1000);
+            PAUSAR(DELAY);
         #endif
     }
 
@@ -438,28 +462,20 @@ void update()
     int relogioAtual = relogioGlobal;
     if (telaAtual == TELA_INICIAL)
     {
-    
         desenhaTelaInicial();
-        acaoTela(TELA_JOGO, VK_CONTROL);
-        Sleep(50);
+        acaoTela(TELA_JOGO, TECLA_C); // Substituído para a letra C
+        PAUSAR(50);
         limparBufferTeclado();
     }
 
     if (telaAtual == TELA_JOGO)
     {
-        char statusJogo[35];
+        // tocar_musica("Jogo", 1); 
 
-        mciSendString("status Jogo mode", statusJogo, sizeof(statusJogo), NULL);
-
-        if(strcmp(statusJogo, "playing") != 0)
-        {
-            mciSendString("seek Jogo to start", NULL, 0, NULL);
-            mciSendString("play Jogo", NULL, 0, NULL);
-        }
         if (salvando && !morrendo)
         {
             salvarPessoa();
-            Sleep(400);
+            PAUSAR(400);
         }
 
         if (morrendo)
@@ -483,31 +499,26 @@ void update()
             updateMorto();
         }
 
-        acaoTela(TELA_INICIAL, VK_ESCAPE);
+        acaoTela(TELA_INICIAL, TECLA_ESC);
         desenhaTela();
     }
-    else{
-        mciSendString("stop Jogo", NULL, 0, NULL);
+    else
+    {
+        // parar_musica("Jogo");
     }
 
     if (telaAtual == TELA_GAMEOVER)
     {
-        char statusGameOver[35];
-
-        mciSendString("status Gameover mode", statusGameOver, sizeof(statusGameOver), NULL);
-
-        if(strcmp(statusGameOver, "playing") != 0)
-        {
-            mciSendString("seek Gameover to start", NULL, 0, NULL);
-            mciSendString("play Gameover", NULL, 0, NULL);
-        }
+        // tocar_musica("Gameover", 1);
+        
         desenhaTelaGameOver();
-        acaoTela(TELA_INICIAL, VK_CONTROL);
-        Sleep(50);
+        acaoTela(TELA_INICIAL, TECLA_C);
+        PAUSAR(50);
         limparBufferTeclado();
     }
-    else{
-        mciSendString("stop Gameover", NULL, 0, NULL);
+    else
+    {
+        //parar_musica("Gameover");
     }
 
     relogioGlobal++;
@@ -1545,27 +1556,30 @@ void acoesPlayer()
 {
     if (relogioGlobal % TICK_PLAYER == 0)
     {
-        if (GetAsyncKeyState(VK_RIGHT))
+        if (tecla_pressionada(TECLA_DIREITA))
         {
             player.x += VELOCIDADE_X_PLAYER;
             PLAYER_SPRITE = PLAYER_DIREITA;
         }
-        if (GetAsyncKeyState(VK_LEFT))
+        if (tecla_pressionada(TECLA_ESQUERDA))
         {
             player.x -= VELOCIDADE_X_PLAYER;
             PLAYER_SPRITE = PLAYER_ESQUERDA;
         }
-
-        if (GetAsyncKeyState(VK_DOWN))
+        if (tecla_pressionada(TECLA_BAIXO))
+        {
             player.y += VELOCIDADE_Y_PLAYER;
-        if (GetAsyncKeyState(VK_UP))
+        }
+        if (tecla_pressionada(TECLA_CIMA))
+        {
             player.y -= VELOCIDADE_Y_PLAYER;
+        }
     }
 }
 
 void acaoTiro()
 {
-    if (GetAsyncKeyState(VK_SPACE))
+    if (tecla_pressionada(TECLA_ESPACO))
     {
         for (int i = 0; i < MAX_TIRO; i++)
         {
@@ -1575,7 +1589,8 @@ void acaoTiro()
                 tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x + POS_TIRO_D : player.x + POS_TIRO_E;
                 tiros[i].y = player.y + 1;
                 tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
-                mciSendString("play Tiro from 0", NULL, 0, NULL);
+                
+                // tocar_musica("Tiro", 0); 
 
                 break;
             }
