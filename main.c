@@ -476,6 +476,9 @@ void update()
 
     relogioGlobal++;
 }
+//==============================================================================
+// INICILIZAÇÃO DE SONS
+//==============================================================================
 
 void iniciarSons(){
     mciSendString("open sons/tiro.wav type mpegvideo alias Tiro", NULL, 0, NULL);
