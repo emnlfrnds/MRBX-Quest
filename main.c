@@ -11,6 +11,7 @@
 #else
     #include <unistd.h>
     #include <termios.h>
+    #include <fcntl.h>
 #endif
 // ============================================================================
 // MACROS E CONSTANTES (#define)
@@ -442,7 +443,7 @@ void desenhaPessoa();
 void desenhaMorto();
 void desenhaMapa();
 void desenhaTela();
-void iniciarSons();
+// void iniciarSons();
 void salvarPessoa();
 void spawnarPessoa();
 void spawnarPeixes();
@@ -481,7 +482,9 @@ void iniciar();
 void resetEntidades();
 void resetTiros();
 void reset();
+#ifdef _WIN32
 void limparBufferTeclado();
+#endif
 void mudarTela(int tela);
 
 // ============================================================================
@@ -524,7 +527,9 @@ void update()
         desenhaTelaInicial();
         acaoTela(TELA_JOGO, TECLA_C); // Substituído para a letra C
         PAUSAR(50);
-        limparBufferTeclado();
+        #ifdef _WIN32
+        void limparBufferTeclado();
+        #endif
     }
 
     if (telaAtual == TELA_JOGO)
@@ -573,11 +578,13 @@ void update()
         desenhaTelaGameOver();
         acaoTela(TELA_INICIAL, TECLA_C);
         PAUSAR(50);
-        limparBufferTeclado();
+        #ifdef _WIN32
+        void limparBufferTeclado();
+        #endif
     }
     else
     {
-        //parar_musica("Gameover");
+        // parar_musica("Gameover");
     }
 
     relogioGlobal++;
@@ -587,7 +594,7 @@ void update()
 // INICILIZAÇÃO DE SONS
 //==============================================================================
 
-void iniciarSons(){
+/*void iniciarSons(){
     mciSendString("open sons/tiro.wav type mpegvideo alias Tiro", NULL, 0, NULL);
     mciSendString("open sons/peixeehumanomorto.wav type mpegvideo alias MorteEntidade", NULL, 0, NULL);
     mciSendString("open sons/dano.wav type mpegvideo alias Dano", NULL, 0, NULL);
@@ -597,7 +604,7 @@ void iniciarSons(){
     mciSendString("open sons/salvando.wav type mpegvideo alias Salvando", NULL, 0, NULL);
     mciSendString("open sons/fundo.mp3 type mpegvideo alias Jogo", NULL, 0, NULL);
     mciSendString("open sons/gameover.mp3 type mpegvideo alias Gameover", NULL, 0, NULL);
-}
+}*/
 
 // ============================================================================
 // RENDERIZAÇÃO E DESENHOS
@@ -1153,20 +1160,20 @@ void updatePlayer()
     {
         char status[35];
 
-        mciSendString("status Respirando mode", status, sizeof(status), NULL);
+        /*mciSendString("status Respirando mode", status, sizeof(status), NULL);
 
         if(strcmp(status, "playing") != 0 && player.nivelOxigenio < 1000)
         {
             mciSendString("seek Respirando to start", NULL, 0, NULL);
             mciSendString("play Respirando", NULL, 0, NULL);
-        }
+        }*/
 
         player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
     }
     else if (relogioGlobal % TICK_OXIGENIO == 0)
     {
-        mciSendString("stop Respirando", NULL, 0, NULL);
+        // mciSendString("stop Respirando", NULL, 0, NULL);
         player.respirando = 0;
         player.nivelOxigenio -= NIVEL_MAX_OXIGENIO * 0.004;
     }
@@ -1411,7 +1418,11 @@ void animacaoDano()
 
     primeiroFrame = 0;
 
-    Sleep(500);
+    #ifdef _WIN32
+        Sleep(500);
+    #else
+        PAUSAR(500);;
+    #endif
 }
 
 // ============================================================================
@@ -1454,7 +1465,7 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
         {
             resetEntidades();
             resetTiros();
-            mciSendString("play Dano from 0", NULL, 0, NULL);
+            // mciSendString("play Dano from 0", NULL, 0, NULL);
             morrendo = 1;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -1476,7 +1487,7 @@ void colisaoPlayerTiro(TIRO tiro[], int tiro_MAX)
         {
             morrendo = 1;
             tiro[t].ativo = 0;
-            mciSendString("play Dano from 0", NULL, 0, NULL);
+            // mciSendString("play Dano from 0", NULL, 0, NULL);
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
             break;
@@ -1501,7 +1512,7 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                         tiro[t].ativo = 0;
                         if (isPlayer && entidade[e].vida <= 0)
                         {
-                            mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
+                            // mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
                             player.score += 50;
                         }
 
@@ -1534,7 +1545,7 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
                     if (peixes[j].tipo > 0)
                     {
                         pessoas[i].vivo = 0;
-                        mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
+                        // mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
                     }
                     else
                     {
@@ -1565,7 +1576,7 @@ void colisaoPessoaPlayer()
             player.y < pessoas[i].y + ALTURA_PESSOA && pessoas[i].vivo == 1)
         {
             pessoas[i].vivo = 0;
-            mciSendString("play Resgatando from 0", NULL, 0, NULL);
+            // mciSendString("play Resgatando from 0", NULL, 0, NULL);
 
             if (player.pessoasSalvas < 5)
                 player.pessoasSalvas++;
@@ -1599,7 +1610,7 @@ void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entid
 
             if (checkColisaoEntidades(entidade1[e1], entidade2[e2]))
             {
-                mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
+                // mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
                 entidade2[e2].vivo = 0;
             }
         }
@@ -1670,7 +1681,7 @@ void acaoTiroInimigo()
                 tirosInimigo[i].x = (inimigo[ini].dx > 0) ? inimigo[ini].x + POS_TIRO_D : inimigo[ini].x + POS_TIRO_E;
                 tirosInimigo[i].y = inimigo[ini].y + 1;
                 tirosInimigo[i].dx = (inimigo[ini].dx > 0) ? VEL_TIRO_INIMIGO : -VEL_TIRO_INIMIGO;
-                mciSendString("play Tiro from 0", NULL, 0, NULL);
+                // mciSendString("play Tiro from 0", NULL, 0, NULL);
 
                 inimigo[ini].intervalo_ataque = INTERVALO_TIRO;
             }
@@ -1706,8 +1717,8 @@ void matarEntidade(int posX, int posY)
 
 void salvarPessoa()
 {
-    mciSendString("stop Respirando", NULL, 0, NULL);
-    mciSendString("play Salvando from 0", NULL, 0, NULL);
+    // mciSendString("stop Respirando", NULL, 0, NULL);
+    // mciSendString("play Salvando from 0", NULL, 0, NULL);
     player.pessoasSalvas--;
     player.score += 250;
 
@@ -1722,7 +1733,7 @@ void salvarPessoa()
 
 void acaoTela(int tela, int tecla)
 {
-    if (GetAsyncKeyState(tecla))
+    if (tecla_pressionada(tecla))
     {
         mudarTela(tela);
         iniciar();
@@ -2162,7 +2173,7 @@ void iniciar()
     iniciarEntidade(tubarao, TUBARAO_MAX, 0, 1);
     iniciarEntidade(inimigo, INIMIGO_MAX, 1, 2);
     iniciarTiros();
-    iniciarSons();
+    // iniciarSons();
     iniciarMorto();
     iniciarPessoas();
 }
@@ -2284,9 +2295,10 @@ void resetTiros()
 // ============================================================================
 // UTILITÁRIOS E FUNÇÕES AUXILIARES
 // ============================================================================
-
+#ifdef _WIN32
 void limparBufferTeclado()
 {
-    if (kbhit())
-        getch();
+    while (_kbhit())
+        _getch();
 }
+#endif
