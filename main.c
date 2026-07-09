@@ -411,7 +411,9 @@ void mudarTela(int tela);
 
 int main(int argc, char *argv[])
 {
-    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    #ifdef _WIN32
+        hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    #endif
 
     srand((unsigned)time(NULL));
 
@@ -420,7 +422,12 @@ int main(int argc, char *argv[])
     while (1)
     {
         update();
-        Sleep(DELAY);
+
+        #ifdef _WIN32
+            Sleep(DELAY);
+        #else
+            usleep(DELAY * 1000);
+        #endif
     }
 
     return 0;
