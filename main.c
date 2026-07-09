@@ -518,104 +518,115 @@ void desenhaTela()
 
 void desenhaMapa()
 {
-    for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; i++)
+    for (int y = 0; y < TELA_ALTURA; y++)
     {
-        consoleBuffer[i].Char.AsciiChar = ' ';
-
-        if (i < TELA_LARGURA * ALTURA_CEU)
+        for (int x = 0; x < TELA_LARGURA; x++)
         {
-            consoleBuffer[i].Attributes = BACKGROUND_BLUE | BACKGROUND_INTENSITY;
-            continue;
-        }
+            telaMatriz[y][x].caractere = ' ';
 
-        if (i >= TELA_LARGURA * (TELA_ALTURA - 1))
-        {
-            consoleBuffer[i].Attributes = BACKGROUND_GREEN | BACKGROUND_RED;
-            continue;
+            if (y < ALTURA_CEU)
+            {
+                telaMatriz[y][x].atributos = BACKGROUND_BLUE | BACKGROUND_INTENSITY;
+            }
+            else if (y >= TELA_ALTURA - 1)
+            {
+                telaMatriz[y][x].atributos = BACKGROUND_GREEN | BACKGROUND_RED;
+            }
+            else if (y >= TELA_ALTURA - ALTURA_CHAO)
+            {
+                telaMatriz[y][x].atributos = BACKGROUND_GREEN;
+            }
+            else
+            {
+                telaMatriz[y][x].atributos = BACKGROUND_BLUE;
+            }
         }
-
-        if (i >= TELA_LARGURA * (TELA_ALTURA - ALTURA_CHAO))
-        {
-            consoleBuffer[i].Attributes = BACKGROUND_GREEN;
-            continue;
-        }
-
-        consoleBuffer[i].Attributes = BACKGROUND_BLUE;
     }
 }
 
 void desenhaTelaInicial()
 {
-
-    for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; ++i)
+    // Limpa a tela inteira com espaço vazio e cor padrão
+    for (int y = 0; y < TELA_ALTURA; ++y)
     {
-        consoleBuffer[i].Char.AsciiChar = ' ';
-        consoleBuffer[i].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;
+        for (int x = 0; x < TELA_LARGURA; ++x)
+        {
+            telaMatriz[y][x].caractere = ' ';
+            telaMatriz[y][x].atributos = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;
+        }
     }
 
+    // Desenha o Logo
     for (int i = 0; i < ALTURA_LOGO; ++i)
     {
         for (int j = 0; j < LARGURA_LOGO; ++j)
         {
-            int indice = (LOGO_Y + i) * TELA_LARGURA + (LOGO_X + j);
-            consoleBuffer[indice].Char.AsciiChar = MRBX_QUESTLOGO[i][j];
-            consoleBuffer[indice].Attributes = FOREGROUND_BLUE;
+            telaMatriz[LOGO_Y + i][LOGO_X + j].caractere = MRBX_QUESTLOGO[i][j];
+            telaMatriz[LOGO_Y + i][LOGO_X + j].atributos = FOREGROUND_BLUE;
         }
     }
 
-    char textoIniciar[35];
-    sprintf(textoIniciar, "PRESSIONE CONTROL PARA INICIAR");
-
-    int inicio = (ALTURA_LOGO + LOGO_Y + 1) * (TELA_LARGURA) + 48;
+    // Texto: Iniciar
+    char textoIniciar[] = "PRESSIONE CONTROL PARA INICIAR";
+    int textoIniciarY = ALTURA_LOGO + LOGO_Y + 1;
+    int textoIniciarX = 48;
+    
     for (int i = 0; textoIniciar[i] != '\0'; i++)
     {
-        consoleBuffer[inicio + i].Char.AsciiChar = textoIniciar[i];
-        consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
+        telaMatriz[textoIniciarY][textoIniciarX + i].caractere = textoIniciar[i];
+        telaMatriz[textoIniciarY][textoIniciarX + i].atributos = FOREGROUND_BLUE;
     }
 
-    char textoComandos[43];
-    sprintf(textoComandos, "COMANDOS: Space -> Atirar, Setas -> Mover");
+    // Texto: Comandos
+    char textoComandos[] = "COMANDOS: Space -> Atirar, Setas -> Mover";
+    int textoComandosY = ALTURA_LOGO + LOGO_Y + 2;
+    int textoComandosX = 42;
 
-    inicio = (ALTURA_LOGO + LOGO_Y + 2) * (TELA_LARGURA) + 42;
     for (int i = 0; textoComandos[i] != '\0'; i++)
     {
-        consoleBuffer[inicio + i].Char.AsciiChar = textoComandos[i];
-        consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
+        telaMatriz[textoComandosY][textoComandosX + i].caractere = textoComandos[i];
+        telaMatriz[textoComandosY][textoComandosX + i].atributos = FOREGROUND_BLUE;
     }
 
-    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    // Empurra a matriz finalizada para a tela
+    flushTela();
 }
 
 void desenhaTelaGameOver()
 {
-
-    for (int i = 0; i < TELA_LARGURA * TELA_ALTURA; ++i)
+    // Limpa a tela inteira com espaço vazio e cor padrão
+    for (int y = 0; y < TELA_ALTURA; ++y)
     {
-        consoleBuffer[i].Char.AsciiChar = ' ';
-        consoleBuffer[i].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;
+        for (int x = 0; x < TELA_LARGURA; ++x)
+        {
+            telaMatriz[y][x].caractere = ' ';
+            telaMatriz[y][x].atributos = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED;
+        }
     }
 
+    // Desenha a arte do Game Over
     for (int i = 0; i < ALTURA_GAMEOVER; ++i)
     {
         for (int j = 0; j < LARGURA_GAMEOVER; ++j)
         {
-            int indice = (GAME_OVER_Y + i) * TELA_LARGURA + (GAME_OVER_X + j);
-            consoleBuffer[indice].Char.AsciiChar = GAMEOVER[i][j];
-            consoleBuffer[indice].Attributes = FOREGROUND_RED;
+            telaMatriz[GAME_OVER_Y + i][GAME_OVER_X + j].caractere = GAMEOVER[i][j];
+            telaMatriz[GAME_OVER_Y + i][GAME_OVER_X + j].atributos = FOREGROUND_RED;
         }
     }
 
-    char textoIniciar[35];
-    sprintf(textoIniciar, "PRESSIONE CONTROL PARA VOLTAR AO MENU");
+    // Texto de instrução
+    char textoIniciar[] = "PRESSIONE CONTROL PARA VOLTAR AO MENU";
+    int textoIniciarY = ALTURA_GAMEOVER + GAME_OVER_Y + 1;
+    int textoIniciarX = 35;
 
-    int inicio = (ALTURA_GAMEOVER + GAME_OVER_Y + 1) * (TELA_LARGURA) + 35;
     for (int i = 0; textoIniciar[i] != '\0'; i++)
     {
-        consoleBuffer[inicio + i].Char.AsciiChar = textoIniciar[i];
-        consoleBuffer[inicio + i].Attributes = FOREGROUND_BLUE;
+        telaMatriz[textoIniciarY][textoIniciarX + i].caractere = textoIniciar[i];
+        telaMatriz[textoIniciarY][textoIniciarX + i].atributos = FOREGROUND_BLUE;
     }
 
-    WriteConsoleOutputA(hConsole, consoleBuffer, bufferSize, bufferCoord, &consoleWriteArea);
+    // Atualiza a tela
+    flushTela();
 }
 
 void desenhaScore()
@@ -623,11 +634,14 @@ void desenhaScore()
     char textoScore[30];
     sprintf(textoScore, "Score: %d", player.score);
 
-    int inicio = 10;
+    // O índice 10 do vetor 1D equivale a Y = 0 e X = 10
+    int inicioY = 0;
+    int inicioX = 10;
+    
     for (int i = 0; textoScore[i] != '\0'; i++)
     {
-        consoleBuffer[inicio + i].Char.AsciiChar = textoScore[i];
-        consoleBuffer[inicio + i].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
+        telaMatriz[inicioY][inicioX + i].caractere = textoScore[i];
+        telaMatriz[inicioY][inicioX + i].atributos = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
     }
 }
 
@@ -636,11 +650,14 @@ void desenhaVida()
     char textoVida[15];
     sprintf(textoVida, "Vida: %d", player.vida);
 
-    int inicio = TELA_LARGURA - 25;
+    // O índice (TELA_LARGURA - 25) do vetor 1D equivale a Y = 0 e X = TELA_LARGURA - 25
+    int inicioY = 0;
+    int inicioX = TELA_LARGURA - 25;
+    
     for (int i = 0; textoVida[i] != '\0'; i++)
     {
-        consoleBuffer[inicio + i].Char.AsciiChar = textoVida[i];
-        consoleBuffer[inicio + i].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
+        telaMatriz[inicioY][inicioX + i].caractere = textoVida[i];
+        telaMatriz[inicioY][inicioX + i].atributos = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
     }
 }
 
@@ -648,16 +665,19 @@ void desenhaBarraOxigenio()
 {
     int frameAtual = relogioGlobal % 5;
 
-    WORD corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
+    // Usando 'short' no lugar de 'WORD' para manter a portabilidade
+    short corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
 
     if (frameAtual == 0 && player.nivelOxigenio < 250)
     {
         corBarraOx = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED;
     }
-    if (player.nivelOxigenio < 250 && player.respirando == 0 && telaAtual == TELA_JOGO){
-        mciSendString("play Alerta repeat", NULL, 0, NULL);
-    }else{
-        mciSendString("stop Alerta", NULL, 0, NULL);
+    
+    // Substituindo a API do Windows pelas nossas funções genéricas
+    if (player.nivelOxigenio < 250 && player.respirando == 0 && telaAtual == TELA_JOGO) {
+        //tocar_musica("Alerta", 1); // 1 = repete
+    } else {
+        //parar_musica("Alerta");
     }
 
     char barras[25];
@@ -678,11 +698,13 @@ void desenhaBarraOxigenio()
     char barraOxigenio[51];
     sprintf(barraOxigenio, "OXIGENIO: [%s]", barras);
 
-    int inicio = 40;
+    // O índice 40 equivale a Y = 0 e X = 40
+    int inicioY = 0;
+    int inicioX = 40;
     for (int i = 0; barraOxigenio[i] != '\0'; i++)
     {
-        consoleBuffer[inicio + i].Char.AsciiChar = barraOxigenio[i];
-        consoleBuffer[inicio + i].Attributes = corBarraOx;
+        telaMatriz[inicioY][inicioX + i].caractere = barraOxigenio[i];
+        telaMatriz[inicioY][inicioX + i].atributos = corBarraOx;
     }
 }
 
@@ -690,14 +712,15 @@ void desenhaPessoasSalvas()
 {
     int frameAtual = relogioGlobal % 3;
 
-    WORD cor = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
+    short cor = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED;
 
     if (frameAtual == 0 && player.pessoasSalvas == 5)
     {
         cor = FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED;
     }
 
-    char barras[5];
+    // Aumentado para 6 para caber as 5 pessoas + o '\0' com segurança
+    char barras[6];
     int indice = 0;
     for (int i = 0; i < 5; i++)
     {
@@ -715,11 +738,13 @@ void desenhaPessoasSalvas()
     char barra[18];
     sprintf(barra, "PESSOAS: [%s]", barras);
 
-    int inicio = TELA_LARGURA + 45;
+    // O índice TELA_LARGURA + 45 equivale a descer uma linha (Y = 1) e andar 45 colunas (X = 45)
+    int inicioY = 1;
+    int inicioX = 45;
     for (int i = 0; barra[i] != '\0'; i++)
     {
-        consoleBuffer[inicio + i].Char.AsciiChar = barra[i];
-        consoleBuffer[inicio + i].Attributes = cor;
+        telaMatriz[inicioY][inicioX + i].caractere = barra[i];
+        telaMatriz[inicioY][inicioX + i].atributos = cor;
     }
 }
 
@@ -740,25 +765,27 @@ void desenhaPlayer()
     {
         for (int j = 0; j < LARGURA_PLAYER; j++)
         {
-
             int posX = player.x + j;
             int posY = player.y + i;
+            
+            // Verifica se está dentro dos limites da tela
             if (posX >= 0 && posX < TELA_LARGURA && posY >= 0 && posY < TELA_ALTURA)
             {
-
-                int indice = posY * TELA_LARGURA + posX;
-
                 char caractere = PLAYER_SPRITE[frameAtualPlayer][i][j];
 
                 if (caractere != ' ')
                 {
-                    consoleBuffer[indice].Char.AsciiChar = caractere;
+                    telaMatriz[posY][posX].caractere = caractere;
+                    
+                    // Tratamento especial para quando o player encosta no céu
                     if (player.y <= ALTURA_CEU - 1 && i < 1)
                     {
-                        consoleBuffer[indice].Attributes = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_INTENSITY;
-                        continue;
+                        telaMatriz[posY][posX].atributos = FOREGROUND_RED | BACKGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_INTENSITY;
                     }
-                    consoleBuffer[indice].Attributes = player.cor;
+                    else
+                    {
+                        telaMatriz[posY][posX].atributos = player.cor;
+                    }
                 }
             }
         }
@@ -777,20 +804,18 @@ void desenhaPessoa()
             {
                 for (int j = 0; j < LARGURA_PESSOA; j++)
                 {
-
                     int posX = pessoas[p].x + j;
                     int posY = pessoas[p].y + i;
 
-                    int indice = posY * TELA_LARGURA + posX;
-
-                    if (!(posX < 0 || posX > TELA_LARGURA || posY < 0 || posY > TELA_ALTURA))
+                    // Limites da tela verificados de forma segura e direta
+                    if (posX >= 0 && posX < TELA_LARGURA && posY >= 0 && posY < TELA_ALTURA)
                     {
                         char caractere = PESSOA_SPRITE[frameAtualPessoa][i][j];
 
                         if (caractere != ' ')
                         {
-                            consoleBuffer[indice].Char.AsciiChar = caractere;
-                            consoleBuffer[indice].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
+                            telaMatriz[posY][posX].caractere = caractere;
+                            telaMatriz[posY][posX].atributos = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
                         }
                     }
                 }
@@ -812,20 +837,24 @@ void desenhaMorto()
                     int posX = morto[m].x + j;
                     int posY = morto[m].y + i;
 
-                    if (!(posX < 0 || posX > TELA_LARGURA || posY < 0 || posY > TELA_ALTURA))
+                    // Limites da tela verificados de forma segura
+                    if (posX >= 0 && posX < TELA_LARGURA && posY >= 0 && posY < TELA_ALTURA)
                     {
                         char caractere = ICON_MORTO[i][j];
 
                         if (caractere != ' ')
                         {
-                            consoleBuffer[posY * TELA_LARGURA + posX].Char.AsciiChar = caractere;
+                            telaMatriz[posY][posX].caractere = caractere;
 
+                            // Tratamento especial para o teto/céu
                             if (morto[m].y <= ALTURA_CEU - 1 && i < 1)
                             {
-                                consoleBuffer[posY * TELA_LARGURA + posX].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE | BACKGROUND_INTENSITY;
-                                continue;
+                                telaMatriz[posY][posX].atributos = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE | BACKGROUND_INTENSITY;
                             }
-                            consoleBuffer[posY * TELA_LARGURA + posX].Attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
+                            else
+                            {
+                                telaMatriz[posY][posX].atributos = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | BACKGROUND_BLUE;
+                            }
                         }
                     }
                 }
@@ -877,36 +906,38 @@ void desenharEntidades(PEIXES entidade[], int entidade_max)
 
 void desenhaTiro()
 {
+    // Desenha os tiros do jogador
     for (int i = 0; i < MAX_TIRO; i++)
     {
         TIRO tiro = tiros[i];
         if (tiro.ativo)
         {
-            int posX = tiro.x,
-                posY = tiro.y,
-                indice = posY * TELA_LARGURA + posX;
+            int posX = tiro.x;
+            int posY = tiro.y;
 
-            if (posX < TELA_LARGURA && posX > 0)
+            // Verificação de limites de tela corrigida (incluindo posY para segurança total)
+            if (posX >= 0 && posX < TELA_LARGURA && posY >= 0 && posY < TELA_ALTURA)
             {
-                consoleBuffer[indice].Char.AsciiChar = ICON_TIRO;
-                consoleBuffer[indice].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_BLUE;
+                telaMatriz[posY][posX].caractere = ICON_TIRO;
+                telaMatriz[posY][posX].atributos = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_BLUE;
             }
         }
     }
 
+    // Desenha os tiros dos inimigos
     for (int i = 0; i < MAX_TIRO_INIMIGO; i++)
     {
         TIRO tiro = tirosInimigo[i];
         if (tiro.ativo)
         {
-            int posX = tiro.x,
-                posY = tiro.y,
-                indice = posY * TELA_LARGURA + posX;
+            int posX = tiro.x;
+            int posY = tiro.y;
 
-            if (posX < TELA_LARGURA && posX > 0)
+            // Verificação de limites de tela corrigida
+            if (posX >= 0 && posX < TELA_LARGURA && posY >= 0 && posY < TELA_ALTURA)
             {
-                consoleBuffer[indice].Char.AsciiChar = ICON_TIRO;
-                consoleBuffer[indice].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_BLUE;
+                telaMatriz[posY][posX].caractere = ICON_TIRO;
+                telaMatriz[posY][posX].atributos = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_BLUE;
             }
         }
     }
