@@ -996,14 +996,13 @@ void desenharEntidades(PEIXES entidade[], int entidade_max)
 
                     if (caractere != ' ')
                     {
-                        int indice = py * TELA_LARGURA + px;
-                        consoleBuffer[indice].Char.AsciiChar = caractere;
+                        telaMatriz[py][px].caractere = caractere;
                         if (entidade[e].y <= ALTURA_CEU - 1 && i < 1)
                         {
-                            consoleBuffer[indice].Attributes = entidade[e].cor | BACKGROUND_BLUE | BACKGROUND_INTENSITY;
+                            telaMatriz[py][px].atributos = entidade[e].cor | BACKGROUND_BLUE | BACKGROUND_INTENSITY;
                             continue;
                         }
-                        consoleBuffer[indice].Attributes = entidade[e].cor | BACKGROUND_BLUE;
+                        telaMatriz[py][px].atributos = entidade[e].cor | BACKGROUND_BLUE;
                     }
                 }
             }
