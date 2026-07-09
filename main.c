@@ -2,19 +2,11 @@
 // INCLUDES
 // ============================================================================
 
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <stdio.h>
 #include <windows.h>
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
-
-// ============================================================================
-// MACROS E CONSTANTES (#define)
-// ============================================================================
 
 // ============================================================================
 // MACROS E CONSTANTES (#define)
@@ -381,8 +373,6 @@ void resetTiros();
 void reset();
 void limparBufferTeclado();
 void mudarTela(int tela);
-void limparBufferTeclado();
-void mudarTela(int tela);
 
 // ============================================================================
 // MAIN
@@ -418,9 +408,6 @@ void update()
 
     if (telaAtual == TELA_JOGO)
     {
-
-        if (salvando && !morrendo)
-
         if (salvando && !morrendo)
         {
             salvarPessoa();
@@ -1212,9 +1199,9 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
     for (int e = 0; e < entidade_MAX; e++)
     {
         if (player.x + LARGURA_PLAYER > entidade[e].x &&
-            player.x < entidade[e].x + LARGURA_PEIXE &&
+            player.x < entidade[e].x + entidade[e].largura &&
             player.y + ALTURA_PLAYER > entidade[e].y &&
-            player.y < entidade[e].y + ALTURA_PEIXE && entidade[e].vivo == 1)
+            player.y < entidade[e].y + entidade[e].altura && entidade[e].vivo == 1)
         {
             resetEntidades();
             resetTiros();
@@ -1270,7 +1257,7 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                     }
                 }
             }
-            if (!tiros[t].ativo)
+            if (!tiro[t].ativo)
             {
                 break;
             }
@@ -1523,7 +1510,7 @@ void spawnarPessoa()
 
     if (rand() % 2 == 0)
     {
-        pessoas[indice].lado = 0 - LARGURA_PESSOA;
+        pessoas[indice].lado = 0;
         pessoas[indice].x = 0;
     }
     else
@@ -1531,6 +1518,9 @@ void spawnarPessoa()
         pessoas[indice].lado = 1;
         pessoas[indice].x = TELA_LARGURA + LARGURA_PESSOA;
     }
+
+    pessoas[indice].vivo = 1;
+    pessoas[indice].y = ALTURA_CEU + 1 + (rand() % (TELA_ALTURA - ALTURA_CHAO - ALTURA_CEU - 2));
 
     if (player.pessoasSalvas >= 5 && player.respirando)
     {
@@ -1883,6 +1873,7 @@ void iniciarPessoas()
         pessoas[p].vivo = 0;
         pessoas[p].x = 0;
         pessoas[p].y = 0;
+        pessoas[p].lado = 0;
     }
 }
 
@@ -1968,6 +1959,10 @@ void resetTiros()
     for (int t = 0; t < MAX_TIRO; t++)
     {
         tiros[t].ativo = 0;
+    }
+
+    for (int t = 0; t < MAX_TIRO_INIMIGO; t++)
+    {
         tirosInimigo[t].ativo = 0;
     }
 }
