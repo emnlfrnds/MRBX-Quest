@@ -344,7 +344,6 @@ int telaAtual = TELA_INICIAL;
 // PROTÓTIPOS DE FUNÇÕES
 // ============================================================================
 
-void animacaoEntidades();
 void desenhaTelaInicial();
 void desenhaTelaGameOver();
 void desenhaScore();
@@ -381,6 +380,7 @@ void colisaoPessoaPlayer();
 void animacaoDano();
 void colisoes();
 void aumentarVelEntidades();
+void animacaoEntidades();
 void updatePlayer();
 void updateTiro();
 void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, int tick_entidade);
