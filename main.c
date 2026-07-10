@@ -7,6 +7,7 @@
 #include <time.h>
 #ifdef _WIN32
     #include <windows.h>
+    #include <conio.h>
     #include <mmsystem.h>
 #else
     #include <unistd.h>
@@ -134,7 +135,7 @@
     #define TECLA_BAIXO 1004
     #define TECLA_ESPACO ' '
     #define TECLA_ESC 27
-    #define TECLA_C 'c'
+    #define TECLA_C 'c' 
 
     struct termios terminalOriginal;
     int teclasDoFrame[256]; // Array que guarda o que foi apertado no frame atual
@@ -526,7 +527,12 @@ void update()
     {
         desenhaTelaInicial();
         acaoTela(TELA_JOGO, TECLA_C); // Substituído para a letra C
-        PAUSAR(50);
+        #ifdef _WIN32
+            Sleep(50);
+        #else
+            PAUSAR(50);
+        #endif
+
         #ifdef _WIN32
         void limparBufferTeclado();
         #endif
@@ -539,7 +545,11 @@ void update()
         if (salvando && !morrendo)
         {
             salvarPessoa();
-            PAUSAR(400);
+            #ifdef _WIN32
+                Sleep(400);
+            #else
+                PAUSAR(400);
+            #endif
         }
 
         if (morrendo)
@@ -577,9 +587,11 @@ void update()
         
         desenhaTelaGameOver();
         acaoTela(TELA_INICIAL, TECLA_C);
-        PAUSAR(50);
-        #ifdef _WIN32
-        void limparBufferTeclado();
+        #ifndef _WIN32
+            PAUSAR(50);
+        #else
+            Sleep(50);
+            void limparBufferTeclado();
         #endif
     }
     else
@@ -2298,7 +2310,6 @@ void resetTiros()
 #ifdef _WIN32
 void limparBufferTeclado()
 {
-    while (_kbhit())
-        _getch();
+    if (kbhit()) getch();
 }
 #endif
