@@ -127,15 +127,17 @@
         return (GetAsyncKeyState(tecla) & 0x8000) != 0;
     }
 #else
-    #define PAUSAR(ms) usleep((ms) * 1000)
+    #define PAUSAR(ms) usleep((ms) * 1000) // função que substitui o Sleep do Windows, que não existe no Linux
 
-    #define TECLA_DIREITA 1001
-    #define TECLA_ESQUERDA 1002
-    #define TECLA_CIMA 1003
-    #define TECLA_BAIXO 1004
+    // Valores seguros entre 128 e 255 (cabem no array de 256)
+    #define TECLA_CIMA 128
+    #define TECLA_BAIXO 129
+    #define TECLA_DIREITA 130
+    #define TECLA_ESQUERDA 131
+    
     #define TECLA_ESPACO ' '
     #define TECLA_ESC 27
-    #define TECLA_C 'c' 
+    #define TECLA_C 'C'
 
     struct termios terminalOriginal;
     int teclasDoFrame[256]; // Array que guarda o que foi apertado no frame atual
@@ -189,7 +191,6 @@
         }
     }
 
-    // Nossa função genérica, igual no Windows!
     int tecla_pressionada(int tecla) {
         return teclasDoFrame[tecla];
     }
@@ -526,7 +527,7 @@ void update()
     if (telaAtual == TELA_INICIAL)
     {
         desenhaTelaInicial();
-        acaoTela(TELA_JOGO, TECLA_C); // Substituído para a letra C
+        acaoTela(TELA_JOGO, TECLA_C);
         #ifdef _WIN32
             Sleep(50);
         #else
@@ -650,17 +651,17 @@ void traduzirAtributosParaAnsi(short atributos, int* ansiTexto, int* ansiFundo) 
 
     // Tabela de conversão simples (Windows -> ANSI)
     // Cores: Preto(0), Azul(1), Verde(2), Ciano(3), Vermelho(4), Magenta(5), Amarelo(6), Branco(7)
-    int mapaAnsi[8] = {0, 4, 2, 6, 1, 5, 3, 7}; // Mapeamento básico de cores
+    int mapaAnsi[8] = {0, 4, 2, 6, 1, 5, 3, 7};
 
-    int fgCorBase = fg & 0x07; // Pega só a cor sem a intensidade
+    int fgCorBase = fg & 0x07; 
     int bgCorBase = bg & 0x07;
 
     *ansiTexto = 30 + mapaAnsi[fgCorBase];
     *ansiFundo = 40 + mapaAnsi[bgCorBase];
 
-    // Trata a intensidade (clareia a cor)
-    if (fg & FOREGROUND_INTENSITY) *ansiTexto += 60;
-    if (bg & BACKGROUND_INTENSITY) *ansiFundo += 60;
+    // Testa a intensidade diretamente nos 'atributos' originais!
+    if (atributos & FOREGROUND_INTENSITY) *ansiTexto += 60;
+    if (atributos & BACKGROUND_INTENSITY) *ansiFundo += 60;
 }
 #endif
 
@@ -694,7 +695,12 @@ void flushTela() {
             
             putchar(telaMatriz[y][x].caractere);
         }
-        printf("\033[0m\n"); // Reseta a cor no fim da linha e pula
+        if (y < TELA_ALTURA - 1) {
+            printf("\033[0m\n"); // Nas linhas normais, reseta a cor e pula linha
+        } else {
+            printf("\033[0m");   // Na ÚLTIMA linha, reseta a cor mas NÃO pula linha!
+        }
+        
         textoAtual = -1; // Força re-aplicar as cores na linha seguinte
     }
     fflush(stdout);
@@ -752,7 +758,7 @@ void desenhaTelaInicial()
     }
 
     // Texto: Iniciar
-    char textoIniciar[] = "PRESSIONE CONTROL PARA INICIAR";
+    char textoIniciar[] = "PRESSIONE C PARA INICIAR";
     int textoIniciarY = ALTURA_LOGO + LOGO_Y + 1;
     int textoIniciarX = 48;
     
@@ -800,7 +806,7 @@ void desenhaTelaGameOver()
     }
 
     // Texto de instrução
-    char textoIniciar[] = "PRESSIONE CONTROL PARA VOLTAR AO MENU";
+    char textoIniciar[] = "PRESSIONE C PARA VOLTAR AO MENU";
     int textoIniciarY = ALTURA_GAMEOVER + GAME_OVER_Y + 1;
     int textoIniciarX = 35;
 
