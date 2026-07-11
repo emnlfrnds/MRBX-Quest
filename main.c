@@ -611,12 +611,12 @@ void update()
     mciSendString("open sons/tiro.wav type mpegvideo alias Tiro", NULL, 0, NULL);
     mciSendString("open sons/peixeehumanomorto.wav type mpegvideo alias MorteEntidade", NULL, 0, NULL);
     mciSendString("open sons/dano.wav type mpegvideo alias Dano", NULL, 0, NULL);
-    mciSendString("open sons/respirando1.mp3 type mpegvideo alias Respirando", NULL, 0, NULL);
+    mciSendString("open sons/respirando1.wav type mpegvideo alias Respirando", NULL, 0, NULL);
     mciSendString("open sons/resgate.wav type mpegvideo alias Resgatando", NULL, 0, NULL);
-    mciSendString("open sons/Alerta1.mp3 type mpegvideo alias Alerta", NULL, 0, NULL); 
+    mciSendString("open sons/Alerta1.wav type mpegvideo alias Alerta", NULL, 0, NULL); 
     mciSendString("open sons/salvando.wav type mpegvideo alias Salvando", NULL, 0, NULL);
     mciSendString("open sons/fundo.mp3 type mpegvideo alias Jogo", NULL, 0, NULL);
-    mciSendString("open sons/gameover.mp3 type mpegvideo alias Gameover", NULL, 0, NULL);
+    mciSendString("open sons/gameover.wav type mpegvideo alias Gameover", NULL, 0, NULL);
 }*/
 
 // ============================================================================
@@ -866,9 +866,22 @@ void desenhaBarraOxigenio()
     
     // Substituindo a API do Windows pelas nossas funções genéricas
     if (player.nivelOxigenio < 250 && player.respirando == 0 && telaAtual == TELA_JOGO) {
+        #ifdef _WIN32
         //tocar_musica("Alerta", 1); // 1 = repete
+        #else
+        char somAlerta [100];
+        snprintf(somAlerta, sizeof(somAlerta), "while true; do aplay sons/Alerta1.wav; done &");
+        system (somAlerta);
+
+        #endif
     } else {
+        #ifdef _WIN32
         //parar_musica("Alerta");
+        #else
+        snprintf(somAlerta, sizeof(somAlerta), "pkill -f sons/Alerta1.wav");
+        system (somAlerta);
+
+        #endif
     }
 
     char barras[25];
@@ -1176,6 +1189,7 @@ void updatePlayer()
 
     if (player.y < ALTURA_CEU && relogioGlobal % TICK_OXIGENIO == 0)
     {
+        #ifdef _WIN32
         char status[35];
 
         /*mciSendString("status Respirando mode", status, sizeof(status), NULL);
@@ -1185,6 +1199,12 @@ void updatePlayer()
             mciSendString("seek Respirando to start", NULL, 0, NULL);
             mciSendString("play Respirando", NULL, 0, NULL);
         }*/
+    
+        #else
+        char somRespirando [100];
+        snprintf(somRespirando, sizeof(somRespirando), "aplay sons/respirando1.wav &");
+        system(somRespirando);
+        #endif
 
         player.respirando = 1;
         player.nivelOxigenio += NIVEL_MAX_OXIGENIO * 0.02;
@@ -1483,7 +1503,13 @@ void colisaoPlayerEntidade(PEIXES entidade[], int entidade_MAX)
         {
             resetEntidades();
             resetTiros();
+            #ifdef _WIN32
             // mciSendString("play Dano from 0", NULL, 0, NULL);
+            #else
+            char somDano [100];
+            snprintf(somDano, sizeof(somDano), "aplay sons/dano.wav &");
+            system(somDano);
+            #endif
             morrendo = 1;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -1505,7 +1531,16 @@ void colisaoPlayerTiro(TIRO tiro[], int tiro_MAX)
         {
             morrendo = 1;
             tiro[t].ativo = 0;
+
+            #ifdef _WIN32
             // mciSendString("play Dano from 0", NULL, 0, NULL);
+            #else
+            char somDano [100];
+            snprintf(somDano, sizeof(somDano), "aplay sons/dano.wav &");
+            system(somDano);
+            #endif
+
+            morrendo = 1;
 
             player.cor = FOREGROUND_GREEN | BACKGROUND_BLUE | FOREGROUND_INTENSITY;
             break;
@@ -1530,7 +1565,14 @@ void colisaoEntidadeTiro(PEIXES entidade[], int entidade_MAX, int altura_entidad
                         tiro[t].ativo = 0;
                         if (isPlayer && entidade[e].vida <= 0)
                         {
+                            #ifdef _WIN32
                             // mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
+
+                            #else
+                            char somEntidade [100];
+                            snprintf(somEntidade, sizeof(somEntidade), "aplay sons/morteentidade.wav &");
+                            system(somEntidade);
+                            #endif
                             player.score += 50;
                         }
 
@@ -1563,7 +1605,15 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
                     if (peixes[j].tipo > 0)
                     {
                         pessoas[i].vivo = 0;
+                        #ifdef _WIN32
+
                         // mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
+                        #else
+                        char somEntidade [100];
+                        snprintf(somEntidade, sizeof(somEntidade), "aplay sons/morteentidade.wav &");
+                        system(somEntidade);
+
+                         #endif
                     }
                     else
                     {
@@ -1594,7 +1644,14 @@ void colisaoPessoaPlayer()
             player.y < pessoas[i].y + ALTURA_PESSOA && pessoas[i].vivo == 1)
         {
             pessoas[i].vivo = 0;
+            #ifdef _WIN32
             // mciSendString("play Resgatando from 0", NULL, 0, NULL);
+            #else
+            char somResgate [100];
+                snprintf(somResgate, sizeof(somResgate), "aplay sons/resgate.wav &");
+                system(somResgate);
+
+            #endif
 
             if (player.pessoasSalvas < 5)
                 player.pessoasSalvas++;
@@ -1628,7 +1685,15 @@ void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entid
 
             if (checkColisaoEntidades(entidade1[e1], entidade2[e2]))
             {
+                #ifdef _WIN32
+
                 // mciSendString("play MorteEntidade from 0", NULL, 0, NULL);
+                #else
+                char somEntidade [100];
+                snprintf(somEntidade, sizeof(somEntidade), "aplay sons/morteentidade.wav &");
+                system(somEntidade);
+                 #endif
+    
                 entidade2[e2].vivo = 0;
             }
         }
@@ -1681,7 +1746,7 @@ void acaoTiro()
 
                 #else
                 char somTiro [100];
-                snprintf(somTiro, sizeof(somTiro), "paplay sons/tiro.wav &");
+                snprintf(somTiro, sizeof(somTiro), "aplay sons/tiro.wav &");
                 system(somTiro);
 
                 #endif
@@ -1707,7 +1772,16 @@ void acaoTiroInimigo()
                 tirosInimigo[i].x = (inimigo[ini].dx > 0) ? inimigo[ini].x + POS_TIRO_D : inimigo[ini].x + POS_TIRO_E;
                 tirosInimigo[i].y = inimigo[ini].y + 1;
                 tirosInimigo[i].dx = (inimigo[ini].dx > 0) ? VEL_TIRO_INIMIGO : -VEL_TIRO_INIMIGO;
+                #ifdef _WIN32
                 // mciSendString("play Tiro from 0", NULL, 0, NULL);
+
+                #else
+                char somTiroInimigo [100];
+                snprintf(somTiroInimigo, sizeof(somTiroInimigo), "aplay sons/tiro.wav &");
+                system(somTiroInimigo);
+
+
+                #endif
 
                 inimigo[ini].intervalo_ataque = INTERVALO_TIRO;
             }
@@ -1743,8 +1817,17 @@ void matarEntidade(int posX, int posY)
 
 void salvarPessoa()
 {
+    #ifdef _WIN32
     // mciSendString("stop Respirando", NULL, 0, NULL);
     // mciSendString("play Salvando from 0", NULL, 0, NULL);
+    #else
+    snprintf(somRespirando, sizeof(somRespirando), "pkill -f sons/respirando1.wav");
+    system (somRespirando);
+    char somSalvando [100];
+    snprintf(somSalvando, sizeof(somSalvando), "aplay sons/salvando.wav &");
+    system(somSalvando);
+
+    #endif
     player.pessoasSalvas--;
     player.score += 250;
 
