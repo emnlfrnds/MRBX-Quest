@@ -1676,8 +1676,16 @@ void acaoTiro()
                 tiros[i].x = (PLAYER_SPRITE == PLAYER_DIREITA) ? player.x + POS_TIRO_D : player.x + POS_TIRO_E;
                 tiros[i].y = player.y + 1;
                 tiros[i].dx = (PLAYER_SPRITE == PLAYER_DIREITA) ? VEL_TIRO : -VEL_TIRO;
-                
+                #ifdef _WIN32
                 // tocar_musica("Tiro", 0); 
+
+                #else
+                char somTiro [100];
+                snprintf(somTiro, sizeof(somTiro), "paplay sons/tiro.wav &");
+                system(somTiro);
+
+                #endif
+                
 
                 break;
             }
