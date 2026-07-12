@@ -878,6 +878,7 @@ void desenhaBarraOxigenio()
         #ifdef _WIN32
         //parar_musica("Alerta");
         #else
+        char somAlerta[100];
         snprintf(somAlerta, sizeof(somAlerta), "pkill -f sons/Alerta1.wav");
         system (somAlerta);
 
@@ -1821,6 +1822,7 @@ void salvarPessoa()
     // mciSendString("stop Respirando", NULL, 0, NULL);
     // mciSendString("play Salvando from 0", NULL, 0, NULL);
     #else
+    char somRespirando[100];
     snprintf(somRespirando, sizeof(somRespirando), "pkill -f sons/respirando1.wav");
     system (somRespirando);
     char somSalvando [100];
