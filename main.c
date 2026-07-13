@@ -1,17 +1,9 @@
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <stdio.h>
 #include <windows.h>
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <mmsystem.h>
-
-// ============================================================================
-// MACROS E CONSTANTES (#define)
-// ============================================================================
 
 #define TELA_LARGURA 125
 #define TELA_ALTURA 25
@@ -52,7 +44,6 @@
 #define TOTAL_FRAMES_PESSOA 3
 #define VELOCIDADE_ANIMACAO_PESSOA 7
 #define MAX_PESSOAS 3
-// #define TICK_PESSOA
 
 #define ALTURA_PEIXE 3
 #define LARGURA_PEIXE 6
@@ -85,13 +76,9 @@
 #define POS_TIRO_D 6
 #define POS_TIRO_E 1
 
-#define MORTO_MAX (PEIXE_MAX) // TODO Deve adicionar o MAX de inimigos no MORTO_MAX sempre que adicionar uma entidade nova
+#define MORTO_MAX (PEIXE_MAX)
 #define ALTURA_MORTO 3
 #define LARGURA_MORTO 3
-
-// ============================================================================
-// STRUCTS
-// ============================================================================
 
 typedef struct
 {
@@ -147,10 +134,6 @@ typedef struct
 } MORTO;
 
 MORTO morto[MORTO_MAX];
-
-// ============================================================================
-// TELAS E SPRITES
-// ============================================================================
 
 const char *MRBX_QUESTLOGO[ALTURA_LOGO] = {
 
@@ -295,9 +278,6 @@ const char *ICON_MORTO[ALTURA_MORTO] = {
     " x ",
     "/ \\"};
 
-// ============================================================================
-// VARIÁVEIS GLOBAIS
-// ============================================================================
 
 HANDLE hConsole;
 CHAR_INFO consoleBuffer[TELA_LARGURA * TELA_ALTURA];
@@ -316,10 +296,6 @@ int VEL_TIRO_INIMIGO = 1;
 
 int relogioGlobal = 0;
 int telaAtual = TELA_INICIAL;
-
-// ============================================================================
-// PROTÓTIPOS DE FUNÇÕES
-// ============================================================================
 
 void animacaoEntidades();
 void desenhaTelaInicial();
@@ -376,10 +352,6 @@ void resetTiros();
 void reset();
 void limparBufferTeclado();
 void mudarTela(int tela);
-
-// ============================================================================
-// MAIN
-// ============================================================================
 
 int main(int argc, char *argv[])
 {
@@ -477,9 +449,6 @@ void update()
 
     relogioGlobal++;
 }
-//==============================================================================
-// INICILIZAÇÃO DE SONS
-//==============================================================================
 
 void iniciarSons(){
     mciSendString("open sons/tiro.wav type mpegvideo alias Tiro", NULL, 0, NULL);
@@ -493,11 +462,6 @@ void iniciarSons(){
     mciSendString("open sons/gameover.mp3 type mpegvideo alias Gameover", NULL, 0, NULL);
     
 }
-
-
-// ============================================================================
-// RENDERIZAÇÃO E DESENHOS
-// ============================================================================
 
 void desenhaTela()
 {
@@ -913,10 +877,6 @@ void desenhaTiro()
     }
 }
 
-// ============================================================================
-// ATUALIZAÇÕES GERAIS (UPDATES E ANIMAÇÕES)
-// ============================================================================
-
 void updatePlayer()
 {
     if (player.vida <= 0)
@@ -1217,10 +1177,6 @@ void animacaoDano()
     Sleep(500);
 }
 
-// ============================================================================
-// FÍSICA E COLISÕES
-// ============================================================================
-
 void colisoes()
 {
     colisaoPlayerEntidade(peixe, PEIXE_MAX);
@@ -1409,10 +1365,6 @@ void checkEncontrosEntidades(PEIXES entidade1[], int entidade1_MAX, PEIXES entid
     }
 }
 
-// ============================================================================
-// AÇÕES, COMBATE E ESTADOS DO JOGO
-// ============================================================================
-
 void acoesPlayer()
 {
     if (relogioGlobal % TICK_PLAYER == 0)
@@ -1533,10 +1485,6 @@ void mudarTela(int tela)
     telaAtual = tela;
     reset();
 }
-
-// ============================================================================
-// SISTEMA DE SPAWN E GERENCIAMENTO
-// ============================================================================
 
 void gerenciarSpawns()
 {
@@ -1947,10 +1895,6 @@ void spawnarInimigo()
     }
 }
 
-// ============================================================================
-// INICIALIZAÇÃO E RESETS
-// ============================================================================
-
 void iniciar()
 {
     iniciarPlayer();
@@ -2076,10 +2020,6 @@ void resetTiros()
         tirosInimigo[t].ativo = 0;
     }
 }
-
-// ============================================================================
-// UTILITÁRIOS E FUNÇÕES AUXILIARES
-// ============================================================================
 
 void limparBufferTeclado()
 {
