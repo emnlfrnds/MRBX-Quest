@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <windows.h>
-#include <conio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <mmsystem.h>
@@ -350,10 +349,9 @@ void iniciar();
 void resetEntidades();
 void resetTiros();
 void reset();
-void limparBufferTeclado();
 void mudarTela(int tela);
 
-int main(int argc, char *argv[])
+int main()
 {
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -379,7 +377,6 @@ void update()
         desenhaTelaInicial();
         acaoTela(TELA_JOGO, VK_CONTROL);
         Sleep(50);
-        limparBufferTeclado();
     }
 
     if (telaAtual == TELA_JOGO)
@@ -441,7 +438,6 @@ void update()
         desenhaTelaGameOver();
         acaoTela(TELA_INICIAL, VK_CONTROL);
         Sleep(50);
-        limparBufferTeclado();
     }
     else{
         mciSendString("stop Gameover", NULL, 0, NULL);
@@ -680,7 +676,7 @@ void desenhaPessoasSalvas()
     char barra[18];
     sprintf(barra, "PESSOAS: [%s]", barras);
 
-    int inicio = TELA_LARGURA + 45;
+    int inicio = TELA_LARGURA + 50;
     for (int i = 0; barra[i] != '\0'; i++)
     {
         consoleBuffer[inicio + i].Char.AsciiChar = barra[i];
@@ -2019,10 +2015,4 @@ void resetTiros()
     {
         tirosInimigo[t].ativo = 0;
     }
-}
-
-void limparBufferTeclado()
-{
-    if (kbhit())
-        getch();
 }
