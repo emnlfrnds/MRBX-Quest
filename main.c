@@ -79,7 +79,6 @@
 #define INIMIGO_MAX 1
 
 #define VEL_TIRO 5
-#define VEL_TIRO_INIMIGO 1
 #define ICON_TIRO '='
 #define MAX_TIRO 20
 #define MAX_TIRO_INIMIGO INIMIGO_MAX
@@ -313,6 +312,7 @@ int frameMorte = 0, primeiroFrame = 1;
 int TICK_PEIXE;
 int TICK_TUBARAO;
 int TICK_INIMIGO;
+int VEL_TIRO_INIMIGO = 1;
 
 int relogioGlobal = 0;
 int telaAtual = TELA_INICIAL;
@@ -357,7 +357,8 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
 void colisaoPessoaPlayer();
 void animacaoDano();
 void colisoes();
-void aumentarVelEntidades();
+void aumentarVelInimigos(int);
+void aumentarDificuldade();
 void updatePlayer();
 void updateTiro();
 void updateEntidade(PEIXES entidade[], int entidade_MAX, int largura_entidade, int tick_entidade);
@@ -436,7 +437,7 @@ void update()
         {
             gerenciarSpawns();
             updatePlayer();
-            aumentarVelEntidades();
+            aumentarDificuldade();
             updatePessoa();
             animacaoEntidades();
             updateEntidade(peixe, PEIXE_MAX, LARGURA_PEIXE, TICK_PEIXE);
@@ -1108,39 +1109,35 @@ void updateMorto()
     }
 }
 
-void aumentarVelEntidades()
+void aumentarVelInimigos(int tick){
+    TICK_PEIXE = tick;
+    TICK_TUBARAO = tick;
+    TICK_INIMIGO = tick;
+}
+
+void aumentarDificuldade()
 {
     int dificuldade = player.score / 2000;
 
     if (dificuldade == 0)
     {
-        TICK_PEIXE = 5;
-        TICK_TUBARAO = 5;
-        TICK_INIMIGO = 5;
+        aumentarVelInimigos(5);
     }
     else if (dificuldade == 1)
     {
-        TICK_PEIXE = 4;
-        TICK_TUBARAO = 4;
-        TICK_INIMIGO = 4;
+        aumentarVelInimigos(4);
     }
     else if (dificuldade == 3)
     {
-        TICK_PEIXE = 3;
-        TICK_TUBARAO = 3;
-        TICK_INIMIGO = 3;
+        aumentarVelInimigos(3);
     }
     else if (dificuldade == 4)
     {
-        TICK_PEIXE = 2;
-        TICK_TUBARAO = 2;
-        TICK_INIMIGO = 2;
+        aumentarVelInimigos(2);
     }
     else if (dificuldade >= 6)
     {
-        TICK_PEIXE = 1;
-        TICK_TUBARAO = 1;
-        TICK_INIMIGO = 1;
+        aumentarVelInimigos(1);
     }
 }
 

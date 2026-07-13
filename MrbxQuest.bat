@@ -12,4 +12,5 @@ if %ERRORLEVEL% EQU 0 (
     start main.exe
 ) else (
     ECHO ERRO DE COMPILAÇÂO! Veja as mensagens acima.
+    pause
 )
