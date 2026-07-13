@@ -357,7 +357,7 @@ void colisaoPessoaEntidade(PEIXES peixes[], int tamanhoVetor, int alturaPx, int 
 void colisaoPessoaPlayer();
 void animacaoDano();
 void colisoes();
-void aumentarVelInimigos(int);
+void aumentarVelInimigos(int, int);
 void aumentarDificuldade();
 void updatePlayer();
 void updateTiro();
@@ -1109,35 +1109,37 @@ void updateMorto()
     }
 }
 
-void aumentarVelInimigos(int tick){
+void aumentarVelInimigos(int tick, int tiro_inimigo){
     TICK_PEIXE = tick;
     TICK_TUBARAO = tick;
     TICK_INIMIGO = tick;
+    VEL_TIRO_INIMIGO = tiro_inimigo;
 }
 
 void aumentarDificuldade()
 {
-    int dificuldade = player.score / 2000;
+    int dificuldade = player.score / 1000;
 
     if (dificuldade == 0)
     {
-        aumentarVelInimigos(5);
+        aumentarVelInimigos(5, 1);
+
     }
     else if (dificuldade == 1)
     {
-        aumentarVelInimigos(4);
+        aumentarVelInimigos(4, 1);
     }
     else if (dificuldade == 3)
     {
-        aumentarVelInimigos(3);
+        aumentarVelInimigos(3, 2);
     }
     else if (dificuldade == 4)
     {
-        aumentarVelInimigos(2);
+        aumentarVelInimigos(2, 2);
     }
     else if (dificuldade >= 6)
     {
-        aumentarVelInimigos(1);
+        aumentarVelInimigos(1, 3);
     }
 }
 
